@@ -1,7 +1,4 @@
-VSSIM
-=====
-
-***'V'***irtual machine based ***'S'***SD ***'SIM'***ulator
+VSSIM: Virtual machine based SSD SIMulator
 -----
 VSSIM is an SSD Simulator performed with full virtualized system based on QEMU. VSSIM operates on top of QEMU/KVM with software based SSD module as an IDE device. VSSIM runs in real-time and allows the user to measure both the host performance and SSD behavior under various design choices.
  By using running virtual machine as a simulation environment, VSSIM can process workload in realtime and preserve the system status after a session of experiment, in other words, VSSIM provides methods to module the actual behavior of the SSD. 
