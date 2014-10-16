@@ -1,0 +1,160 @@
+#include "common.h"
+#include "ftl_mapping_manager.h"
+#include "ftl_config_manager.h"
+#include "ftl_inverse_mapping_manager.h"
+
+void* mapping_table_start;
+void* block_table_start;
+
+void INIT_MAPPING_TABLE(void)
+{
+	/* Allocation Memory for Mapping Table */
+	mapping_table_start = (void*)calloc(PAGE_MAPPING_ENTRY_NB, sizeof(mapping_table_entry));
+	if(mapping_table_start == NULL){
+#ifdef FTL_DEBUG
+		printf("ERROR[FTL_INIT_MAPPING] Calloc mapping table fail\n");
+#endif
+		return;
+	}
+
+	/* Initialization Mapping Table */
+	
+	/* If mapping_table.dat file exists */
+	FILE* fp = fopen("./data/mapping_table.dat","r");
+	if(fp != NULL){
+		fread(mapping_table_start, sizeof(mapping_table_entry), PAGE_MAPPING_ENTRY_NB, fp);
+	}
+	else{	
+		int i;	
+		mapping_table_entry* curr_mapping_entry = (mapping_table_entry*)mapping_table_start;
+		for(i=0;i<PAGE_MAPPING_ENTRY_NB;i++){
+			curr_mapping_entry->phy_flash_nb = FLASH_NB;
+			curr_mapping_entry->phy_block_nb = 0;
+			curr_mapping_entry->phy_page_nb = 0;
+			curr_mapping_entry += 1;
+		}
+	}
+}
+
+void TERM_MAPPING_TABLE(void)
+{
+	FILE* fp = fopen("./data/mapping_table.dat","w");
+	if(fp==NULL){
+#ifdef FTL_DEBUG
+		printf("ERROR[TERM_MAPPING_TABLE] File open fail\n");
+#endif
+		return;
+	}
+
+	/* Write the mapping table to file */
+	fwrite(mapping_table_start, sizeof(mapping_table_entry),PAGE_MAPPING_ENTRY_NB,fp);
+
+	/* Free memory for mapping table */
+	free(mapping_table_start);
+}
+
+int GET_MAPPING_INFO(int64_t lba, unsigned int* phy_flash_nb, unsigned int* phy_block_nb, unsigned int* phy_page_nb)
+{
+	mapping_table_entry* curr_mapping_entry = GET_MAPPING_ENTRY(lba);
+
+	if(curr_mapping_entry == NULL){
+#ifdef FTL_DEBUG
+		printf("ERROR[GET_MAPPING_INFO] Get mapping entry fail\n");
+#endif
+		return FAIL;
+	}
+
+	*phy_flash_nb = curr_mapping_entry->phy_flash_nb;
+	*phy_block_nb = curr_mapping_entry->phy_block_nb;
+	*phy_page_nb = curr_mapping_entry->phy_page_nb;
+
+	return SUCCESS;
+}
+
+int GET_NEW_PAGE(unsigned int* new_phy_flash_nb, unsigned int* new_phy_block_nb, unsigned int* new_phy_page_nb)
+{
+	empty_block_entry* curr_empty_block;
+
+	curr_empty_block = GET_EMPTY_BLOCK();
+	if(curr_empty_block == NULL){
+		printf("ERROR[GET_NEW_PAGE] fail\n");
+		return FAIL;
+	}
+
+	*new_phy_flash_nb = curr_empty_block->phy_flash_nb;
+	*new_phy_block_nb = curr_empty_block->phy_block_nb;
+	*new_phy_page_nb = curr_empty_block->curr_phy_page_nb;
+
+	curr_empty_block->curr_phy_page_nb += 1;
+
+	return SUCCESS;
+}
+
+mapping_table_entry* GET_MAPPING_ENTRY(int64_t lba)
+{
+	int64_t log_page_nb = (int64_t)lba / (int64_t)SECTORS_PER_PAGE;
+	mapping_table_entry* mapping_entry = (mapping_table_entry*)mapping_table_start + log_page_nb;
+
+	if(mapping_entry == NULL){
+#ifdef FTL_DEBUG
+		printf("ERROR[GET_MAPPING_ENTRY] Get mapping entry fail \n");
+#endif
+		return FAIL;
+	}
+
+	return mapping_entry;
+}
+
+int UPDATE_OLD_PAGE_MAPPING(int64_t lba)
+{
+	int ret;
+	unsigned int phy_flash_nb;
+	unsigned int phy_block_nb;
+	unsigned int phy_page_nb;	
+
+	ret = GET_MAPPING_INFO(lba, &phy_flash_nb, &phy_block_nb, &phy_page_nb);
+
+	if(ret == FAIL){
+		printf("ERROR[UPDATE_OLD_PAGE_MAPPING] Get mapping info fail\n");
+		return FAIL;
+	}
+	else if(phy_flash_nb == FLASH_NB){
+#ifdef FTL_DEBUG
+		printf("[UPDATE_OLD_PAGE_MAPPING] New page \n");
+#endif
+		return SUCCESS;
+	}
+	else{
+		UPDATE_INVERSE_BLOCK_VALIDITY(phy_flash_nb, phy_block_nb, phy_page_nb, INVALID);
+		UPDATE_INVERSE_PAGE_MAPPING(phy_flash_nb, phy_block_nb, phy_page_nb, FLASH_NB, 0, 0, INVALID);
+	}
+
+	return SUCCESS;
+}
+
+int UPDATE_NEW_PAGE_MAPPING(int64_t lba, unsigned int new_phy_flash_nb, unsigned int new_phy_block_nb, unsigned int new_phy_page_nb)
+{
+	unsigned int log_page_nb_i = lba / (int64_t)SECTORS_PER_PAGE;
+	unsigned int log_block_nb_i = log_page_nb_i / PAGE_NB;
+	unsigned int log_flash_nb = log_block_nb_i / BLOCK_NB;
+	unsigned int log_block_nb = log_block_nb_i % BLOCK_NB;
+	unsigned int log_page_nb = log_page_nb_i % PAGE_NB;
+
+	/* Update Page Mapping Table */
+	mapping_table_entry* mapping_entry = GET_MAPPING_ENTRY(lba);
+	if(mapping_entry == NULL){
+		printf("ERROR[UPDATE_NEW_PAGE_MAPPING] Get mapping entry fail\n");
+                return FAIL;
+        }
+
+	mapping_entry->phy_flash_nb = new_phy_flash_nb;
+	mapping_entry->phy_block_nb = new_phy_block_nb;
+	mapping_entry->phy_page_nb = new_phy_page_nb;
+
+	/* Update Inverse Page Mapping Table */
+	UPDATE_INVERSE_BLOCK_VALIDITY(new_phy_flash_nb, new_phy_block_nb, new_phy_page_nb, VALID);
+	UPDATE_INVERSE_BLOCK_MAPPING(new_phy_flash_nb, new_phy_block_nb, DATA_BLOCK);
+	UPDATE_INVERSE_PAGE_MAPPING(new_phy_flash_nb, new_phy_block_nb, new_phy_page_nb, log_flash_nb, log_block_nb, log_page_nb, VALID);
+
+	return SUCCESS;
+}

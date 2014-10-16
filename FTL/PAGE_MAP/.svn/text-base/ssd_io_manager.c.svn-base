@@ -1,0 +1,301 @@
+#include "common.h"
+#include "ssd_io_manager.h"
+#include "ftl_config_manager.h"
+#include "ssd_util.h"
+#include <sys/time.h>
+
+
+int64_t* access_time_ch;
+int* access_type_ch;
+int64_t* access_time_reg;
+int* access_type_reg;
+
+int old_channel_nb;
+
+int64_t get_usec(void)
+{
+  int64_t t = 0;
+  struct timeval tv;
+  struct timezone tz;
+
+  gettimeofday(&tv, &tz);
+  t = tv.tv_sec;
+  t *= 1000000;
+  t += tv.tv_usec;
+
+  return t;
+}
+
+
+int SSD_IO_INIT(void){
+  int i= 0;
+
+  old_channel_nb = CHANNEL_NB;
+  
+
+  /* 변수를 초기화 한다 */
+  access_time_ch = (int64_t *)malloc(sizeof(int64_t) * CHANNEL_NB);
+  for(i=0; i<CHANNEL_NB; i++){
+    *(access_time_ch +i)= CHANNEL_IS_EMPTY;
+  }
+
+  access_type_ch = (int *)malloc(sizeof(int) * CHANNEL_NB);
+  for(i=0; i<CHANNEL_NB; i++){
+    *(access_type_ch +i)= CHANNEL_IS_EMPTY;
+  }
+
+  access_time_reg = (int64_t *)malloc(sizeof(int64_t) * FLASH_NB * PLANES_PER_FLASH);
+  for(i=0; i< FLASH_NB*PLANES_PER_FLASH; i++){
+    *(access_time_reg + i) = REG_IS_EMPTY;
+  }
+  
+  access_type_reg = (int *)malloc(sizeof(int) * FLASH_NB * PLANES_PER_FLASH);
+  for(i=0; i< FLASH_NB*PLANES_PER_FLASH; i++){
+    *(access_type_reg + i) = REG_IS_EMPTY;
+  }
+
+  return 0;
+
+}
+
+int CELL_WRITE(unsigned int flash_nb,unsigned int block_nb,unsigned int page_nb)
+{
+  int64_t time_stamp, diff, time_flag, s_time;
+  int channel, reg;
+
+  if( page_nb < 0 || page_nb >= PAGE_NB ){
+    printf("[err] page_nb is not valid\n");
+    return FAIL;
+  }
+
+  channel = flash_nb % CHANNEL_NB;
+  reg = flash_nb*PLANES_PER_FLASH + block_nb%PLANES_PER_FLASH;
+
+#ifdef SSD_CH_SWITCH_DELAY
+  if( channel != old_channel_nb ){
+	s_time = time_flag = get_usec();
+	diff = time_flag - access_time_ch[old_channel_nb];
+	while( diff < CHANNEL_SWITCH_DELAY ){
+		time_stamp = get_usec();
+		diff = time_stamp - time_flag;
+	}
+  }
+  old_channel_nb = channel;
+#else
+  s_time = get_usec();
+#endif
+
+  diff = get_usec() - access_time_ch[channel];
+  switch(access_type_ch[channel]){
+    case CHANNEL_IS_WRITE:
+      while( diff < REG_WRITE_DELAY ){
+        time_stamp = get_usec();
+        diff = time_stamp - access_time_ch[channel];
+      }
+	  access_time_ch[channel] = s_time = get_usec();
+	  access_type_ch[channel] = CHANNEL_IS_WRITE;
+      break;
+    case CHANNEL_IS_READ:
+      while( diff < REG_READ_DELAY ){
+        time_stamp = get_usec();
+        diff = time_stamp - access_time_ch[channel];
+      }
+	  access_time_ch[channel] = s_time = get_usec();
+	  access_type_ch[channel] = CHANNEL_IS_WRITE;
+      break;
+    case CHANNEL_IS_EMPTY:
+	  access_time_ch[channel] = s_time;
+	  access_type_ch[channel] = CHANNEL_IS_WRITE;
+      break;
+  }
+
+  access_time_ch[channel] = get_usec();
+  access_type_ch[channel] = CHANNEL_IS_WRITE;
+  
+  diff = s_time + REG_WRITE_DELAY - access_time_reg[reg];
+  switch(access_type_reg[reg]){
+    case REG_IS_WRITE:
+      if( diff > CELL_PROGRAM_DELAY ){ // 즉, 기다릴 필요가 없다면,
+ 
+	//access_time_ch[channel] = get_usec();
+        //access_type_ch[channel] = CHANNEL_IS_WRITE;
+
+        access_time_reg[reg] = get_usec() + REG_WRITE_DELAY;
+        access_type_reg[reg] = REG_IS_WRITE;
+        return SUCCESS;
+      }
+
+      while( diff < CELL_PROGRAM_DELAY ){
+        time_stamp = get_usec();
+        diff = time_stamp - access_time_reg[reg];
+      }
+      //access_time_ch[channel] = get_usec();
+      //access_type_ch[channel] = CHANNEL_IS_WRITE;
+      break;
+
+    case REG_IS_READ:
+      if( diff > CELL_READ_DELAY ){ // 즉, 기다릴 필요가 없다면,
+        access_time_reg[reg] = get_usec() + REG_WRITE_DELAY;
+        access_type_reg[reg] = REG_IS_WRITE;
+        return SUCCESS;
+      }
+      while( diff < CELL_READ_DELAY ){
+        time_stamp = get_usec();
+        diff = time_stamp - access_time_reg[reg];
+      }
+      //access_time_ch[channel] = get_usec();
+      //access_type_ch[channel] = REG_IS_WRITE;
+      break;
+
+    case REG_IS_EMPTY:
+      //access_time_ch[channel] = get_usec();
+      //access_type_ch[channel] = CHANNEL_IS_WRITE;
+	break;
+
+/*
+      access_time_reg[reg] = get_usec() + REG_WRITE_DELAY;
+      access_type_reg[reg] = REG_IS_WRITE;
+      return SUCCESS;
+*/
+  }
+  access_time_reg[reg] = get_usec();
+  //access_time_reg[reg] = get_usec() + REG_WRITE_DELAY;
+  access_type_reg[reg] = REG_IS_WRITE;
+
+
+
+#ifdef SSD_DEBUG
+  printf("\n--ssd_write()--\n");
+  printf("channel[%d] register[%d]\n",channel, reg);
+  printf("access_time ch is  %lld\n", access_time_ch[channel]);
+  printf("access_type_ch is  %d\n", access_type_ch[channel]);
+  printf("access_time_reg is %lld\n", access_time_reg[reg]);
+  printf("access_type_reg is %d\n", access_type_reg[reg]);
+#endif
+
+  return SUCCESS;
+}
+
+
+int CELL_READ(unsigned int flash_nb, unsigned int block_nb, unsigned int page_nb)
+{
+  int64_t time_stamp, diff, time_flag, s_time;
+  int channel, reg;
+  if( page_nb < 0 || page_nb >= PAGE_NB ){
+    printf("[err] page_nb is not valid\n");
+    return FAIL;
+  }
+
+  channel = flash_nb % CHANNEL_NB;
+  reg = flash_nb*PLANES_PER_FLASH + block_nb%PLANES_PER_FLASH;
+
+#ifdef SSD_CH_SWITCH_DELAY
+  if( channel != old_channel_nb ){
+	time_flag = s_time = get_usec();
+	diff = time_flag - access_time_ch[old_channel_nb];
+	while( diff < CHANNEL_SWITCH_DELAY ){
+		time_stamp = get_usec();
+		diff = time_stamp - time_flag;
+	}
+  }
+  old_channel_nb = channel;
+#else
+	s_time = get_usec();
+#endif
+/*
+	//채널이 사용되고 있는지 확인
+	//사용되고 있다면 끝날 때 까지 대기
+  diff = get_usec() - access_time_ch[channel];
+  switch(access_type_ch[channel]){
+    case CHANNEL_IS_WRITE:
+      while( diff < REG_WRITE_DELAY ){
+        time_stamp = get_usec();
+        diff = time_stamp - access_time_ch[channel];
+      }
+	  s_time = get_usec();
+      break;
+    case CHANNEL_IS_READ:
+      while( diff < REG_READ_DELAY ){
+        time_stamp = get_usec();
+        diff = time_stamp - access_time_ch[channel];
+      }
+	  s_time = get_usec();
+      break;
+    case CHANNEL_IS_EMPTY:
+      break;
+  } 
+  
+*/
+  diff = get_usec() - access_time_reg[reg];
+  switch(access_type_reg[reg]){
+    case REG_IS_WRITE:
+      if( diff > CELL_PROGRAM_DELAY ){ // 즉, 기다릴 필요가 없다면,
+        access_time_reg[reg] = get_usec();
+        access_type_reg[reg] = REG_IS_READ;
+
+//	access_time_ch[channel] = get_usec()+CELL_READ_DELAY;
+//	access_type_ch[channel] = CHANNEL_IS_READ;
+
+	break;
+      }
+      while( diff < CELL_PROGRAM_DELAY ){
+        time_stamp = get_usec();
+        diff = time_stamp - access_time_reg[reg];
+      }
+
+      access_time_reg[reg] = get_usec();
+      access_type_reg[reg] = REG_IS_READ;
+	break;
+
+    case REG_IS_READ:
+      if( diff > CELL_READ_DELAY ){ // 즉, 기다릴 필요가 없다면,
+        access_time_reg[reg] = get_usec();
+        access_type_reg[reg] = REG_IS_READ;
+
+//	access_time_ch[channel] = get_usec()+CELL_READ_DELAY;
+ //       access_type_ch[channel] = CHANNEL_IS_READ;
+	break;
+
+      }
+      while( diff < CELL_READ_DELAY ){
+        time_stamp = get_usec();
+        diff = time_stamp - access_time_reg[reg];
+      }
+      access_time_reg[reg] = get_usec();
+      access_type_reg[reg] = REG_IS_READ;
+  //    access_time_ch[channel] = get_usec() + CELL_READ_DELAY;
+   //   access_type_ch[channel] = CHANNEL_IS_READ;
+	break;
+
+    case REG_IS_EMPTY:
+      access_time_reg[reg] = get_usec();
+      access_type_reg[reg] = REG_IS_READ;
+    //  access_time_ch[channel] = get_usec()+CELL_READ_DELAY;
+     // access_type_ch[channel] = CHANNEL_IS_READ;
+      break;
+  }
+
+  diff = get_usec() - access_time_ch[channel];
+  switch(access_type_ch[channel]){
+    case CHANNEL_IS_WRITE:
+      while( diff < REG_WRITE_DELAY ){
+        time_stamp = get_usec();
+        diff = time_stamp - access_time_ch[channel];
+      }
+      break;
+    case CHANNEL_IS_READ:
+      while( diff < REG_READ_DELAY ){
+        time_stamp = get_usec();
+        diff = time_stamp - access_time_ch[channel];
+      }
+      break;
+    case CHANNEL_IS_EMPTY:
+      break;
+  }
+
+  access_time_ch[channel] = get_usec() + CELL_READ_DELAY;
+  access_type_ch[channel] = CHANNEL_IS_READ;
+
+  return SUCCESS;
+}
+

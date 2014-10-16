@@ -1,0 +1,155 @@
+#include "ftl_config_manager.h"
+int PAGE_SIZE;
+int PAGE_NB;
+int SECTOR_SIZE;
+int FLASH_NB;
+int BLOCK_NB;
+
+int PLANES_PER_FLASH;
+int PAGES_PER_FLASH;
+
+int64_t SECTOR_NB;
+int64_t PAGE_MAPPING_ENTRY_NB;		// added by js
+int64_t BLOCK_MAPPING_ENTRY_NB;		// added by js
+int64_t EACH_EMPTY_BLOCK_ENTRY_NB;
+
+int EMPTY_BLOCK_TABLE_NB;
+
+int DATA_BLOCK_NB;
+int LOG_RAND_BLOCK_NB;
+int LOG_SEQ_BLOCK_NB;
+int LOG_BLOCK_NB;
+
+int SECTORS_PER_PAGE;
+
+int REG_WRITE_DELAY;
+int CELL_PROGRAM_DELAY;
+int REG_READ_DELAY;
+int CELL_READ_DELAY;
+int BLOCK_ERASE_DELAY;
+int CHANNEL_SWITCH_DELAY_W;
+int CHANNEL_SWITCH_DELAY_R;
+
+int DSM_TRIM_ENABLE;
+int IO_PARALLELISM;
+
+int CHANNEL_NB;
+
+char gFile_Name[1024] = {0,};
+
+void INIT_SSD_CONFIG(void)
+{
+	FILE* pfData;
+	pfData = fopen("./data/ssd.conf", "r");
+	
+	char* szCommand = NULL;
+	
+	szCommand = (char*)malloc(1024);
+	memset(szCommand, 0x00, 1024);
+	if(pfData!=NULL)
+	{
+		while(fscanf(pfData, "%s", szCommand)!=EOF)
+		{
+			if(strcmp(szCommand, "FILE_NAME") == 0)
+			{
+				fscanf(pfData, "%s", gFile_Name);
+			}
+			else if(strcmp(szCommand, "PAGE_SIZE") == 0)
+			{
+				fscanf(pfData, "%d", &PAGE_SIZE);
+			}
+			else if(strcmp(szCommand, "PAGE_NB") == 0)
+			{
+				fscanf(pfData, "%d", &PAGE_NB);
+			}
+			else if(strcmp(szCommand, "SECTOR_SIZE") == 0)
+			{
+				fscanf(pfData, "%d", &SECTOR_SIZE);
+			}	
+			else if(strcmp(szCommand, "FLASH_NB") == 0)
+			{
+				fscanf(pfData, "%d", &FLASH_NB);
+			}	
+			else if(strcmp(szCommand, "BLOCK_NB") == 0)
+			{
+				fscanf(pfData, "%d", &BLOCK_NB);
+			}					
+			else if(strcmp(szCommand, "PLANES_PER_FLASH") == 0)
+			{
+				fscanf(pfData, "%d", &PLANES_PER_FLASH);
+			}
+			else if(strcmp(szCommand, "LOG_RAND_BLOCK_NB") == 0)
+			{
+				fscanf(pfData, "%d", &LOG_RAND_BLOCK_NB);
+			}	
+			else if(strcmp(szCommand, "LOG_SEQ_BLOCK_NB") == 0)
+			{
+				fscanf(pfData, "%d", &LOG_SEQ_BLOCK_NB);
+			}	
+			else if(strcmp(szCommand, "LOG_BLOCK_NB") == 0)
+			{
+				fscanf(pfData, "%d", &LOG_BLOCK_NB);
+			}				
+			else if(strcmp(szCommand, "REG_WRITE_DELAY") == 0)
+			{
+				fscanf(pfData, "%d", &REG_WRITE_DELAY);
+			}	
+			else if(strcmp(szCommand, "CELL_PROGRAM_DELAY") == 0)
+			{
+				fscanf(pfData, "%d", &CELL_PROGRAM_DELAY);
+			}
+			else if(strcmp(szCommand, "REG_READ_DELAY") == 0)
+			{
+				fscanf(pfData, "%d", &REG_READ_DELAY);
+			}
+			else if(strcmp(szCommand, "CELL_READ_DELAY") == 0)
+			{
+				fscanf(pfData, "%d", &CELL_READ_DELAY);
+			}
+			else if(strcmp(szCommand, "BLOCK_ERASE_DELAY") == 0)
+			{
+				fscanf(pfData, "%d", &BLOCK_ERASE_DELAY);
+			}
+			else if(strcmp(szCommand, "CHANNEL_SWITCH_DELAY_R") == 0)
+			{
+				fscanf(pfData, "%d", &CHANNEL_SWITCH_DELAY_R);
+			}
+			else if(strcmp(szCommand, "CHANNEL_SWITCH_DELAY_W") == 0)
+			{
+				fscanf(pfData, "%d", &CHANNEL_SWITCH_DELAY_W);
+			}
+			else if(strcmp(szCommand, "DSM_TRIM_ENABLE") == 0)
+			{
+				fscanf(pfData, "%d", &DSM_TRIM_ENABLE);
+			}
+			else if(strcmp(szCommand, "IO_PARALLELISM") == 0)
+			{
+				fscanf(pfData, "%d", &IO_PARALLELISM);
+			}
+			else if(strcmp(szCommand, "CHANNEL_NB") == 0)
+			{
+				fscanf(pfData, "%d", &CHANNEL_NB);
+			}
+			memset(szCommand, 0x00, 1024);
+		}	
+		fclose(pfData);
+
+	}
+	DATA_BLOCK_NB = BLOCK_NB - LOG_RAND_BLOCK_NB - LOG_SEQ_BLOCK_NB;
+	SECTORS_PER_PAGE = PAGE_SIZE / SECTOR_SIZE;
+	PAGES_PER_FLASH = PAGE_NB * BLOCK_NB;
+	
+	SECTOR_NB = (int64_t)SECTORS_PER_PAGE * (int64_t)PAGE_NB * (int64_t)BLOCK_NB * (int64_t)FLASH_NB;
+	PAGE_MAPPING_ENTRY_NB = (int64_t)PAGE_NB * (int64_t)BLOCK_NB * (int64_t)FLASH_NB;
+	BLOCK_MAPPING_ENTRY_NB = (int64_t)BLOCK_NB * (int64_t)FLASH_NB;
+
+	EACH_EMPTY_BLOCK_ENTRY_NB = (int64_t)BLOCK_NB / (int64_t)PLANES_PER_FLASH;
+
+	EMPTY_BLOCK_TABLE_NB = FLASH_NB * PLANES_PER_FLASH;
+
+	free(szCommand);
+}
+
+char* GET_FILE_NAME(void){
+	return gFile_Name;
+}

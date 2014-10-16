@@ -1,0 +1,89 @@
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/VSSIM_Source2/!svn/ver/109/PAGE_MAP3/SSD
+END
+ssd_trim_manager.c
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/VSSIM_Source2/!svn/ver/108/PAGE_MAP3/SSD/ssd_trim_manager.c
+END
+ftl_mapping_manager.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/VSSIM_Source2/!svn/ver/118/PAGE_MAP3/SSD/ftl_mapping_manager.h
+END
+ssd_io_manager.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/VSSIM_Source2/!svn/ver/118/PAGE_MAP3/SSD/ssd_io_manager.h
+END
+ssd_trim_manager.h
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/VSSIM_Source2/!svn/ver/98/PAGE_MAP3/SSD/ssd_trim_manager.h
+END
+ftl_config_manager.c
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svn/VSSIM_Source2/!svn/ver/118/PAGE_MAP3/SSD/ftl_config_manager.c
+END
+ssd_log_manager.c
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/VSSIM_Source2/!svn/ver/117/PAGE_MAP3/SSD/ssd_log_manager.c
+END
+ftl.c
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/VSSIM_Source2/!svn/ver/118/PAGE_MAP3/SSD/ftl.c
+END
+ftl_config_manager.h
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svn/VSSIM_Source2/!svn/ver/118/PAGE_MAP3/SSD/ftl_config_manager.h
+END
+ssd_log_manager.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/VSSIM_Source2/!svn/ver/98/PAGE_MAP3/SSD/ssd_log_manager.h
+END
+ssd_io_manager.c
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/VSSIM_Source2/!svn/ver/117/PAGE_MAP3/SSD/ssd_io_manager.c
+END
+ftl.h
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/VSSIM_Source2/!svn/ver/98/PAGE_MAP3/SSD/ftl.h
+END
+ftl_mapping_manager.c
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/VSSIM_Source2/!svn/ver/118/PAGE_MAP3/SSD/ftl_mapping_manager.c
+END
+ssd_util.h
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/VSSIM_Source2/!svn/ver/98/PAGE_MAP3/SSD/ssd_util.h
+END
+common.h
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/VSSIM_Source2/!svn/ver/118/PAGE_MAP3/SSD/common.h
+END
