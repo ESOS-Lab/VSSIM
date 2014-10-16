@@ -1,0 +1,28 @@
+==========================================================================
+|                                                                        |
+|           VSSIM : Virtual SSD Simulator                                |
+|                                                                        |
+|                                   Embedded Software Systems Lab.       |
+|                        Dept. of Electronics and Computer Engineering   |
+|                                         Hanynag Univ, Seoul, Korea     |
+|                                                                        |
+==========================================================================
+
+Write Request			0
+Write Sector			0
+
+Read Request			0
+Read Sector			0
+
+Garbage Collection
+  Count			0
+  Exchange		0
+  Sector Count			0
+
+TRIM Count			0
+TRIM effect			0
+
+Write Amplification		0
+Overwrite			0
+
+SSD Util			0

@@ -1,0 +1,769 @@
+<!DOCTYPE UI><UI version="3.3" stdsetdef="1">
+<class>Form1</class>
+<widget class="QDialog">
+    <property name="name">
+        <cstring>Form1</cstring>
+    </property>
+    <property name="geometry">
+        <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>600</width>
+            <height>500</height>
+        </rect>
+    </property>
+    <property name="caption">
+        <string>SSD Monitor</string>
+    </property>
+    <widget class="QPushButton">
+        <property name="name">
+            <cstring>btnInit</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>490</x>
+                <y>10</y>
+                <width>100</width>
+                <height>50</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>Initialize </string>
+        </property>
+    </widget>
+
+    <widget class="QGroupBox">
+        <property name="name">
+            <cstring>groupBox1</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>11</x>
+                <y>10</y>
+                <width>460</width>
+                <height>91</height>
+            </rect>
+        </property>
+        <property name="title">
+            <string></string>
+        </property>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>20</x>
+                    <y>30</y>
+                    <width>56</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Write:</string>
+            </property>
+        </widget>
+        <widget class="QLineEdit">
+            <property name="name">
+                <cstring>txtWriteCount</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>120</x>
+                    <y>30</y>
+                    <width>89</width>
+                    <height>22</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>0</string>
+            </property>
+            <property name="alignment">
+                <set>AlignRight</set>
+            </property>
+        </widget>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1_3_3_2</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>140</x>
+                    <y>10</y>
+                    <width>60</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Count</string>
+            </property>
+        </widget>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1_3_3</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>235</x>
+                    <y>10</y>
+                    <width>75</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Speed [MB/s]</string>
+            </property>
+        </widget>
+        <widget class="QLineEdit">
+            <property name="name">
+                <cstring>txtWriteSpeed</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>230</x>
+                    <y>30</y>
+                    <width>89</width>
+                    <height>22</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>0</string>
+            </property>
+            <property name="alignment">
+                <set>AlignRight</set>
+            </property>
+        </widget>
+        <widget class="QLineEdit">
+            <property name="name">
+                <cstring>txtReadSpeed</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>230</x>
+                    <y>60</y>
+                    <width>89</width>
+                    <height>22</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>0</string>
+            </property>
+            <property name="alignment">
+                <set>AlignRight</set>
+            </property>
+        </widget>
+        <widget class="QLineEdit">
+            <property name="name">
+                <cstring>txtWriteSectorCount</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>355</x>
+                    <y>30</y>
+                    <width>89</width>
+                    <height>22</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>0</string>
+            </property>
+            <property name="alignment">
+                <set>AlignRight</set>
+            </property>
+        </widget>
+        <widget class="QLineEdit">
+            <property name="name">
+                <cstring>txtReadSectorCount</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>355</x>
+                    <y>60</y>
+                    <width>89</width>
+                    <height>22</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>0</string>
+            </property>
+            <property name="alignment">
+                <set>AlignRight</set>
+            </property>
+        </widget>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1_3</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>350</x>
+                    <y>10</y>
+                    <width>100</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Sector Count</string>
+            </property>
+        </widget>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1_2</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>20</x>
+                    <y>60</y>
+                    <width>56</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Read:</string>
+            </property>
+        </widget>
+        <widget class="QLineEdit">
+            <property name="name">
+                <cstring>txtReadCount</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>120</x>
+                    <y>60</y>
+                    <width>89</width>
+                    <height>22</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>0</string>
+            </property>
+            <property name="alignment">
+                <set>AlignRight</set>
+            </property>
+        </widget>
+    </widget>
+    <widget class="QGroupBox">
+        <property name="name">
+            <cstring>groupBox2</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>10</x>
+                <y>120</y>
+                <width>460</width>
+                <height>80</height>
+            </rect>
+        </property>
+        <property name="title">
+            <string>Garbage Collection</string>
+        </property>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1_2_2</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>10</x>
+                    <y>20</y>
+                    <width>99</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string></string>
+            </property>
+        </widget>
+        <widget class="QLineEdit">
+            <property name="name">
+                <cstring>txtGarbageCollectionNB</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>120</x>
+                    <y>40</y>
+                    <width>89</width>
+                    <height>22</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>0</string>
+            </property>
+            <property name="alignment">
+                <set>AlignRight</set>
+            </property>
+        </widget>
+        <widget class="QLineEdit">
+            <property name="name">
+                <cstring>txtGarbageCollection</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>230</x>
+                    <y>40</y>
+                    <width>89</width>
+                    <height>22</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>0</string>
+            </property>
+            <property name="alignment">
+                <set>AlignRight</set>
+            </property>
+        </widget>
+        <widget class="QLineEdit">
+            <property name="name">
+                <cstring>txtGCStart</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>355</x>
+                    <y>40</y>
+                    <width>89</width>
+                    <height>22</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>0</string>
+            </property>
+            <property name="alignment">
+                <set>AlignRight</set>
+            </property>
+        </widget>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1_4</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>140</x>
+                    <y>20</y>
+                    <width>66</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Count</string>
+            </property>
+        </widget>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel2</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>238</x>
+                    <y>20</y>
+                    <width>75</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Exchange</string>
+            </property>
+        </widget>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel3</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>380</x>
+                    <y>20</y>
+                    <width>77</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Sector</string>
+            </property>
+        </widget>
+    </widget>
+    <widget class="QGroupBox">
+        <property name="name">
+            <cstring>groupBox3</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>10</x>
+                <y>210</y>
+                <width>270</width>
+                <height>70</height>
+            </rect>
+        </property>
+        <property name="title">
+            <string>TRIM</string>
+        </property>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1_2_2_3_2</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>10</x>
+                    <y>20</y>
+                    <width>70</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string></string>
+            </property>
+        </widget>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel4</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>70</x>
+                    <y>20</y>
+                    <width>56</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Count</string>
+            </property>
+        </widget>
+        <widget class="QLineEdit">
+            <property name="name">
+                <cstring>txtTrimCount</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>50</x>
+                    <y>40</y>
+                    <width>89</width>
+                    <height>22</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>0</string>
+            </property>
+            <property name="alignment">
+                <set>AlignRight</set>
+            </property>
+        </widget>
+        <widget class="QLineEdit">
+            <property name="name">
+                <cstring>txtTrimEffect</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>160</x>
+                    <y>40</y>
+                    <width>89</width>
+                    <height>22</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>0</string>
+            </property>
+            <property name="alignment">
+                <set>AlignRight</set>
+            </property>
+        </widget>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel5</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>182</x>
+                    <y>20</y>
+                    <width>56</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Effect</string>
+            </property>
+        </widget>
+    </widget>
+    <widget class="QLabel">
+        <property name="name">
+            <cstring>textLabel1_2_2_3_2_2_2_2_2_2</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>250</x>
+                <y>300</y>
+                <width>150</width>
+                <height>20</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>Write Amplification</string>
+        </property>
+    </widget>
+    <widget class="QLineEdit">
+        <property name="name">
+            <cstring>txtWriteAmpCount</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>370</x>
+                <y>300</y>
+                <width>89</width>
+                <height>22</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>0</string>
+        </property>
+        <property name="alignment">
+            <set>AlignRight</set>
+        </property>
+    </widget>
+    <widget class="QLineEdit">
+    	<property name="name">
+	    <cstring>txtSsdUtil</cstring>
+        </property>
+	<property name="geometry">
+	    <rect>
+	        <x>370</x>
+		<y>330</y>
+		<width>89</width>
+		<height>22</height>
+	    </rect>
+	</property>
+	<property name="text">
+	    <string>0</string>
+	</property>
+	<property name="alignment">
+	    <set>AlignRight</set>
+        </property>
+    </widget>
+    <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1_2_3</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>250</x>
+                    <y>330</y>
+                    <width>56</width>
+                    <height>20</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>SSD Util</string>
+            </property>
+    </widget>
+    <widget class="QLabel">
+        <property name="name">
+            <cstring>textLabel1_2_2_3_2_2_2_2_2_2_2</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>30</x>
+                <y>300</y>
+                <width>100</width>
+                <height>20</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>Written Page</string>
+        </property>
+    </widget>
+    <widget class="QLineEdit">
+        <property name="name">
+            <cstring>txtWrittenBlockCount</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>130</x>
+                <y>300</y>
+                <width>89</width>
+                <height>22</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>0</string>
+        </property>
+        <property name="alignment">
+            <set>AlignRight</set>
+        </property>
+    </widget>
+    <widget class="QLabel">
+        <property name="name">
+            <cstring>textLabel1_2_2_3_2_2_2_2_2</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>280</x>
+                <y>640</y>
+                <width>110</width>
+                <height>20</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>Written Block Count</string>
+        </property>
+    </widget>
+    <widget class="QLineEdit">
+        <property name="name">
+            <cstring>txtWrittenBlockCount</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>470</x>
+                <y>630</y>
+                <width>89</width>
+                <height>22</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>0</string>
+        </property>
+        <property name="alignment">
+            <set>AlignRight</set>
+        </property>
+    </widget>
+    <widget class="QTextEdit">
+        <property name="name">
+            <cstring>txtDebug</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>10</x>
+                <y>400</y>
+                <width>460</width>
+                <height>80</height>
+            </rect>
+        </property>
+        <property name="mouseTracking">
+            <bool>false</bool>
+        </property>
+    </widget>
+    <widget class="QLabel">
+        <property name="name">
+            <cstring>textLabel1_5</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>10</x>
+                <y>370</y>
+                <width>120</width>
+                <height>20</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>Debug Status</string>
+        </property>
+    </widget>
+    <widget class="QLineEdit">
+        <property name="name">
+            <cstring>txtTimeProg</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>130</x>
+                <y>330</y>
+                <width>89</width>
+                <height>22</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>0</string>
+        </property>
+        <property name="alignment">
+            <set>AlignRight</set>
+        </property>
+    </widget>
+    <widget class="QLabel">
+        <property name="name">
+            <cstring>textLabel1_2_2_3_2_2_2_2_2_2_2_2</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>40</x>
+                <y>330</y>
+                <width>50</width>
+                <height>20</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>Time</string>
+        </property>
+    </widget>
+
+    <widget class="QPushButton">
+        <property name="name">
+            <cstring>btnSave</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>490</x>
+                <y>70</y>
+                <width>100</width>
+                <height>50</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>Save</string>
+        </property>
+    </widget>
+</widget>
+<connections>
+    <connection>
+        <sender>btnInit</sender>
+        <signal>clicked()</signal>
+        <receiver>Form1</receiver>
+        <slot>btnInit_clicked()</slot>
+    </connection>
+    <connection>
+        <sender>btnSave</sender>
+        <signal>clicked()</signal>
+        <receiver>Form1</receiver>
+        <slot>btnSave_clicked()</slot>
+    </connection>
+</connections>
+<includes>
+    <include location="local" impldecl="in declaration">qsocket.h</include>
+    <include location="local" impldecl="in declaration">qtimer.h</include>
+    <include location="local" impldecl="in declaration">qfile.h</include>
+    <include location="local" impldecl="in implementation">form1.ui.h</include>
+</includes>
+<variables>
+    <variable access="private">long long int *access_time_reg_mon;</variable>
+    <variable access="private">int *access_type_reg_mon;</variable>
+    <variable access="private">int CELL_PROGRAM_DELAY;</variable>
+    <variable access="private">long int GC_NB;</variable>
+    <variable access="private">int GCStarted;</variable>
+    <variable access="private">long int ReadSectorCount;</variable>
+    <variable access="private">long int WriteAmpCount;</variable>
+    <variable access="private">long int WrittenCorrectCount;</variable>
+    <variable access="private">long int WriteSectorCount;</variable>
+    <variable access="private">int TrimEffect;</variable>
+    <variable access="private">int TrimCount;</variable>
+    <variable access="private">int WriteCount;</variable>
+    <variable access="private">int PowCount;</variable>
+    <variable access="private">QSocket *sock;</variable>
+    <variable access="private">int ReadCount;</variable>
+    <variable access="private">int RandMergeCount;</variable>
+    <variable access="private">int SeqMergeCount;</variable>
+    <variable access="private">int ExchangeCount;</variable>
+    <variable access="private">long int OverwriteCount;</variable>
+    <variable access="private">QTimer* timer;</variable>
+    <variable access="private">long long int TimeProg;</variable>
+    <variable access="private">double WriteTime</variable>
+    <variable access="private">double ReadTime</variable>
+    <variable access="private">unsigned int WriteSecCount</variable>
+    <variable access="private">unsigned int ReadSecCount</variable>
+</variables>
+<slots>
+    <slot>init_var()</slot>
+    <slot>btnConnect_clicked()</slot>
+    <slot>onReceive()</slot>
+    <slot>btnInit_clicked()</slot>
+    <slot>btnSave_clicked()</slot>
+    <slot access="private">onTimer()</slot>
+</slots>
+<functions>
+    <function>init()</function>
+</functions>
+<pixmapinproject/>
+<layoutdefaults spacing="6" margin="11"/>
+</UI>
