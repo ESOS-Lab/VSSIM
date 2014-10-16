@@ -1,0 +1,75 @@
+#!/bin/bash
+
+prefix=/usr/local
+kerneldir=/lib/modules/$(uname -r)/build
+cc=gcc
+ld=ld
+objcopy=objcopy
+ar=ar
+arch=`uname -m | sed -e s/i.86/i386/`
+processor="$arch"
+cross_prefix=
+
+usage() {
+    cat <<-EOF
+	Usage: $0 [options]
+
+	Options include:
+	    --arch=ARCH            architecture to compile for ($arch)
+	    --cross-prefix=PREFIX  cross compiler prefix
+	    --cc=CC		   c compiler to use ($cc)
+	    --ld=LD		   ld linker to use ($ld)
+	    --prefix=PREFIX        where to install things ($prefix)
+	    --kerneldir=DIR        kernel build directory for kvm.h ($kerneldir)
+EOF
+    exit 1
+}
+
+while [[ "$1" = -* ]]; do
+    opt="$1"; shift
+    arg=
+    if [[ "$opt" = *=* ]]; then
+	arg="${opt#*=}"
+	opt="${opt%%=*}"
+    fi
+    case "$opt" in
+	--prefix)
+	    prefix="$arg"
+	    ;;
+	--kerneldir)
+	    kerneldir="$arg"
+	    ;;
+        --arch)
+	    arch="$arg"
+	    ;;
+        --processor)
+	    processor="$arg"
+	    ;;
+	--cross-prefix)
+	    cross_prefix="$arg"
+	    ;;
+	--cc)
+	    cc="$arg"
+	    ;;
+	--ld)
+	    ld="$arg"
+	    ;;
+	--help)
+	    usage
+	    ;;
+	*)
+	    usage
+	    ;;
+    esac
+done
+
+cat <<EOF > config.mak
+PREFIX=$prefix
+KERNELDIR=$(readlink -f $kerneldir)
+ARCH=$arch
+PROCESSOR=$processor
+CC=$cross_prefix$cc
+LD=$cross_prefix$ld
+OBJCOPY=$cross_prefix$objcopy
+AR=$cross_prefix$ar
+EOF

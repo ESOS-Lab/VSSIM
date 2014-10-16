@@ -1,0 +1,532 @@
+#!/usr/bin/env python
+
+# by Mark Williamson, (C) 2004 Intel Research Cambridge
+
+# Program for reformatting trace buffer output according to user-supplied rules
+
+import re, sys, string, signal, struct, os, getopt, operator
+
+PREFIX = '/usr'
+DATADIR = os.path.join(PREFIX, 'share')
+KVMDIR = os.path.join(DATADIR, 'kvm')
+FORMATS_FILE = os.path.join(KVMDIR, 'formats')
+
+def usage():
+    print >> sys.stderr, \
+          "Usage: " + sys.argv[0] + """ defs-file
+          Parses trace data in binary format, as output by kvmtrace and
+          reformats it according to the rules in a file of definitions.  The
+          rules in this file should have the format ({ and } show grouping
+          and are not part of the syntax):
+
+          {event_id}{whitespace}{text format string}
+
+          The textual format string may include format specifiers, such as:
+            %(ts)d, %(event)d, %(pid)d %(vcpu)d %(1)d, %(2)d,
+	    %(3)d, %(4)d, %(5)d
+          [ the 'd' format specifier outputs in decimal, alternatively 'x'
+            will output in hexadecimal and 'o' will output in octal ]
+
+          Which correspond to the event ID, timestamp counter, pid
+	  , vcpu and the 5 data fields from the trace record.  There should be
+	  one such rule for each type of event.
+          Depending on your system and the volume of trace buffer data,
+          this script may not be able to keep up with the output of kvmtrace
+          if it is piped directly.  In these circumstances you should have
+          kvmtrace output to a file for processing off-line.
+
+          kvmtrace_format has the following additional switches
+          -s     - if this switch is set additional trace statistics are
+                   created and printed at the end of the output
+          """
+    sys.exit(1)
+
+def read_defs(defs_file):
+    defs = {}
+
+    fd = open(defs_file)
+
+    reg = re.compile('(\S+)\s+(\S.*)')
+
+    while True:
+        line = fd.readline()
+        if not line:
+            break
+
+        if line[0] == '#' or line[0] == '\n':
+            continue
+
+        m = reg.match(line)
+
+        if not m: print >> sys.stderr, "Bad format file" ; sys.exit(1)
+
+        defs[str(eval(m.group(1)))] = m.group(2)
+
+    return defs
+
+def sighand(x,y):
+    global interrupted
+    interrupted = 1
+
+# ppc instruction decoding for event type 0x00020019 (PPC_INSTR)
+# some globals for statistic summaries
+stat_ppc_instr_mnemonic = {};
+stat_ppc_instr_spr = {};
+stat_ppc_instr_dcr = {};
+stat_ppc_instr_tlb = {};
+
+def ppc_instr_print_summary(sortedlist, colname):
+	print "\n\n%14s + %10s" % (colname, "count")
+	print "%s" % (15*"-"+"+"+11*"-")
+	sum = 0
+	for value, key in sortedlist:
+		sum += key
+		print "%14s | %10d" % (value, key)
+	print "%14s = %10d" % ("sum", sum)
+
+
+def ppc_instr_summary():
+	# don't print empty statistics
+        if stat_ppc_instr_mnemonic:
+		ppc_instr_print_summary(sorted(stat_ppc_instr_mnemonic.iteritems(), key=operator.itemgetter(1), reverse=True), "mnemonic")
+        if stat_ppc_instr_spr:
+		ppc_instr_print_summary(sorted(stat_ppc_instr_spr.iteritems(), key=operator.itemgetter(1), reverse=True), "mnemonic-spr")
+        if stat_ppc_instr_dcr:
+		ppc_instr_print_summary(sorted(stat_ppc_instr_dcr.iteritems(), key=operator.itemgetter(1), reverse=True), "mnemonic-dcr")
+        if stat_ppc_instr_tlb:
+		ppc_instr_print_summary(sorted(stat_ppc_instr_tlb.iteritems(), key=operator.itemgetter(1), reverse=True), "mnemonic-tlb")
+
+def get_op(instr):
+        return (instr >> 26);
+
+def get_xop(instr):
+        return (instr >> 1) & 0x3ff;
+
+def get_sprn(instr):
+	return ((instr >> 16) & 0x1f) | ((instr >> 6) & 0x3e0)
+
+def get_dcrn(instr):
+	return ((instr >> 16) & 0x1f) | ((instr >> 6) & 0x3e0);
+
+def get_tlbwe_type(instr):
+	ws = (instr >> 11) & 0x1f;
+	if ws == 0:
+		return "PAGEID"
+	elif ws == 1:
+		return "XLAT"
+	elif ws == 2:
+		return "ATTRIB"
+	else:
+		return "UNKNOWN"
+
+def get_name(instr):
+	if get_op(instr)==3:
+		return "trap"
+	elif get_op(instr)==19:
+		if get_xop(instr) == 50:
+			return "rfi"
+		else:
+			return "unknown"
+	elif get_op(instr)==31:
+		if get_xop(instr) == 83:
+			return "mfmsr"
+
+		elif get_xop(instr) == 87:
+			return "lbzx"
+
+		elif get_xop(instr) == 131:
+			return "wrtee"
+
+		elif get_xop(instr) == 146:
+			return "mtmsr"
+
+		elif get_xop(instr) == 163:
+			return "wrteei"
+
+		elif get_xop(instr) == 215:
+			return "stbx"
+
+		elif get_xop(instr) == 247:
+			return "stbux"
+
+		elif get_xop(instr) == 279:
+			return "lhzx"
+
+		elif get_xop(instr) == 311:
+			return "lhzux"
+
+		elif get_xop(instr) == 323:
+			return "mfdcr"
+
+		elif get_xop(instr) == 339:
+			return "mfspr"
+
+		elif get_xop(instr) == 407:
+			return "sthx"
+
+		elif get_xop(instr) == 439:
+			return "sthux"
+
+		elif get_xop(instr) == 451:
+			return "mtdcr"
+
+		elif get_xop(instr) == 467:
+			return "mtspr"
+
+		elif get_xop(instr) == 470:
+			return "dcbi"
+
+		elif get_xop(instr) == 534:
+			return "lwbrx"
+
+		elif get_xop(instr) == 566:
+			return "tlbsync"
+
+		elif get_xop(instr) == 662:
+			return "stwbrx"
+
+		elif get_xop(instr) == 978:
+			return "tlbwe"
+
+		elif get_xop(instr) == 914:
+			return "tlbsx"
+
+		elif get_xop(instr) == 790:
+			return "lhbrx"
+
+		elif get_xop(instr) == 918:
+			return "sthbrx"
+
+		elif get_xop(instr) == 966:
+			return "iccci"
+
+		else:
+			return "unknown"
+
+	elif get_op(instr) == 32:
+		return "lwz"
+
+	elif get_op(instr) == 33:
+		return "lwzu"
+
+	elif get_op(instr) == 34:
+		return "lbz"
+
+	elif get_op(instr) == 35:
+		return "lbzu"
+
+	elif get_op(instr) == 36:
+		return "stw"
+
+	elif get_op(instr) == 37:
+		return "stwu"
+
+	elif get_op(instr) == 38:
+		return "stb"
+
+	elif get_op(instr) == 39:
+		return "stbu"
+
+	elif get_op(instr) == 40:
+		return "lhz"
+
+	elif get_op(instr) == 41:
+		return "lhzu"
+
+	elif get_op(instr) == 44:
+		return "sth"
+
+	elif get_op(instr) == 45:
+		return "sthu"
+
+	else:
+		return "unknown"
+
+def get_sprn_name(sprn):
+		if sprn == 0x01a:
+			return "SRR0"
+		elif sprn == 0x01b:
+			return "SRR1"
+		elif sprn == 0x3b2:
+			return "MMUCR"
+		elif sprn == 0x030:
+			return "PID"
+		elif sprn == 0x03f:
+			return "IVPR"
+		elif sprn == 0x3b3:
+			return "CCR0"
+		elif sprn == 0x378:
+			return "CCR1"
+		elif sprn == 0x11f:
+			return "PVR"
+		elif sprn == 0x03d:
+			return "DEAR"
+		elif sprn == 0x03e:
+			return "ESR"
+		elif sprn == 0x134:
+			return "DBCR0"
+		elif sprn == 0x135:
+			return "DBCR1"
+		elif sprn == 0x11c:
+			return "TBWL"
+		elif sprn == 0x11d:
+			return "TBWU"
+		elif sprn == 0x016:
+			return "DEC"
+		elif sprn == 0x150:
+			return "TSR"
+		elif sprn == 0x154:
+			return "TCR"
+		elif sprn == 0x110:
+			return "SPRG0"
+		elif sprn == 0x111:
+			return "SPRG1"
+		elif sprn == 0x112:
+			return "SPRG2"
+		elif sprn == 0x113:
+			return "SPRG3"
+		elif sprn == 0x114:
+			return "SPRG4"
+		elif sprn == 0x115:
+			return "SPRG5"
+		elif sprn == 0x116:
+			return "SPRG6"
+		elif sprn == 0x117:
+			return "SPRG7"
+		elif sprn == 0x190:
+			return "IVOR0"
+		elif sprn == 0x191:
+			return "IVOR1"
+		elif sprn == 0x192:
+			return "IVOR2"
+		elif sprn == 0x193:
+			return "IVOR3"
+		elif sprn == 0x194:
+			return "IVOR4"
+		elif sprn == 0x195:
+			return "IVOR5"
+		elif sprn == 0x196:
+			return "IVOR6"
+		elif sprn == 0x197:
+			return "IVOR7"
+		elif sprn == 0x198:
+			return "IVOR8"
+		elif sprn == 0x199:
+			return "IVOR9"
+		elif sprn == 0x19a:
+			return "IVOR10"
+		elif sprn == 0x19b:
+			return "IVOR11"
+		elif sprn == 0x19c:
+			return "IVOR12"
+		elif sprn == 0x19d:
+			return "IVOR13"
+		elif sprn == 0x19e:
+			return "IVOR14"
+		elif sprn == 0x19f:
+			return "IVOR15"
+		else:
+			return "UNKNOWN"
+
+def get_special(instr):
+	name = get_name(instr);
+	if stat_ppc_instr_mnemonic.has_key(name):
+		stat_ppc_instr_mnemonic[name] += 1
+	else:
+		stat_ppc_instr_mnemonic[name] = 1
+
+	if get_op(instr) == 31:
+		if (get_xop(instr) == 339) or (get_xop(instr) == 467):
+			sprn = get_sprn(instr);
+			sprn_name = get_sprn_name(sprn);
+			stat_idx = name+"-"+sprn_name
+			if stat_ppc_instr_spr.has_key(stat_idx):
+				stat_ppc_instr_spr[stat_idx] += 1
+			else:
+				stat_ppc_instr_spr[stat_idx] = 1
+			return ("- sprn 0x%03x %8s" % (sprn, sprn_name))
+		elif (get_xop(instr) == 323 ) or (get_xop(instr) == 451):
+			dcrn = get_dcrn(instr);
+			stat_idx = name+"-"+("%04X"%dcrn)
+			if stat_ppc_instr_dcr.has_key(stat_idx):
+				stat_ppc_instr_dcr[stat_idx] += 1
+			else:
+				stat_ppc_instr_dcr[stat_idx] = 1
+			return ("- dcrn 0x%03x" % dcrn)
+		elif (get_xop(instr) == 978 ) or (get_xop(instr) == 451):
+			tlbwe_type = get_tlbwe_type(instr)
+			stat_idx = name+"-"+tlbwe_type
+			if stat_ppc_instr_tlb.has_key(stat_idx):
+				stat_ppc_instr_tlb[stat_idx] += 1
+			else:
+				stat_ppc_instr_tlb[stat_idx] = 1
+			return ("- ws -> %8s" % tlbwe_type)
+	return ""
+
+##### Main code
+
+summary = False
+
+try:
+    opts, arg = getopt.getopt(sys.argv[1:], "sc:" )
+    for opt in opts:
+        if opt[0] == '-s' : summary = True
+
+except getopt.GetoptError:
+    usage()
+
+signal.signal(signal.SIGTERM, sighand)
+signal.signal(signal.SIGHUP,  sighand)
+signal.signal(signal.SIGINT,  sighand)
+
+interrupted = 0
+
+if len(arg) > 0:
+    defs = read_defs(arg[0])
+else:
+    defs = read_defs(FORMATS_FILE)
+
+# structure of trace record (as output by kvmtrace):
+# HDR(I) {TSC(Q)} D1(I) D2(I) D3(I) D4(I) D5(I)
+#
+# HDR consists of EVENT:28:, n_data:3:, ts_in:1:
+# pid:32, vcpu_id:32
+# EVENT means Event ID
+# n_data means number of data (like D1, D2, ...)
+# ts_in means Timestamp data exists(1) or not(0).
+# if ts_in == 0, TSC(Q) does not exists.
+#
+HDRREC = "<III"
+TSCREC = "<Q"
+D1REC  = "<I"
+D2REC  = "<II"
+D3REC  = "<III"
+D4REC  = "<IIII"
+D5REC  = "<IIIII"
+KMAGIC  = "<I"
+
+last_ts = 0
+
+i=0
+
+while not interrupted:
+    try:
+        i=i+1
+
+        if i == 1:
+            line = sys.stdin.read(struct.calcsize(KMAGIC))
+            if not line:
+                break
+            kmgc = struct.unpack(KMAGIC, line)[0]
+
+            #firstly try to parse data file as little endian
+            # if "kvmtrace-metadata".kmagic != kmagic
+            # then data file must be big endian"
+            if kmgc != 0x12345678:
+                if kmgc != 0x78563412:
+                    print >> sys.stderr, "Bad data file: magic number error."
+                    break;
+                else:
+                    HDRREC = ">III"
+                    TSCREC = ">Q"
+                    D1REC  = ">I"
+                    D2REC  = ">II"
+                    D3REC  = ">III"
+                    D4REC  = ">IIII"
+                    D5REC  = ">IIIII"
+            continue
+
+        line = sys.stdin.read(struct.calcsize(HDRREC))
+        if not line:
+            break
+	(event, pid, vcpu_id) = struct.unpack(HDRREC, line)
+
+        n_data = event >> 28 & 0x7
+        ts_in = event >> 31
+
+        d1 = 0
+        d2 = 0
+        d3 = 0
+        d4 = 0
+        d5 = 0
+
+        ts = 0
+
+        if ts_in == 1:
+            line = sys.stdin.read(struct.calcsize(TSCREC))
+            if not line:
+                break
+            ts = struct.unpack(TSCREC, line)[0]
+        if n_data == 1:
+            line = sys.stdin.read(struct.calcsize(D1REC))
+            if not line:
+                break
+            d1 = struct.unpack(D1REC, line)[0]
+        if n_data == 2:
+            line = sys.stdin.read(struct.calcsize(D2REC))
+            if not line:
+                break
+            (d1, d2) = struct.unpack(D2REC, line)
+        if n_data == 3:
+            line = sys.stdin.read(struct.calcsize(D3REC))
+            if not line:
+                break
+            (d1, d2, d3) = struct.unpack(D3REC, line)
+        if n_data == 4:
+            line = sys.stdin.read(struct.calcsize(D4REC))
+            if not line:
+                break
+            (d1, d2, d3, d4) = struct.unpack(D4REC, line)
+        if n_data == 5:
+            line = sys.stdin.read(struct.calcsize(D5REC))
+            if not line:
+                break
+            (d1, d2, d3, d4, d5) = struct.unpack(D5REC, line)
+
+	event &= 0x0fffffff
+
+        # provide relative TSC
+
+        if last_ts > 0 and ts_in == 1:
+            relts = ts - last_ts
+        else:
+            relts = 0
+
+        if ts_in == 1:
+            last_ts = ts
+
+        args = {'ts'   : ts,
+                'event' : event,
+                'relts': relts,
+		'pid'   : pid,
+		'vcpu'  : vcpu_id,
+                '1'     : d1,
+                '2'     : d2,
+                '3'     : d3,
+                '4'     : d4,
+                '5'     : d5    }
+
+        # some event types need more than just formats mapping they are if/elif
+        # chained here and the last default else is the mapping via formats
+        if event == 0x00020019:
+            pdata = (ts, relts, vcpu_id, pid, d1, d2, d3, get_name(d1), get_special(d1))
+            print "%d (+%12d)  PPC_INSTR vcpu = 0x%08x  pid = 0x%08x [ instr = 0x%08x, pc = 0x%08x, emul = %01d, mnemonic = %8s %s" % pdata
+        else:
+            try:
+                if defs.has_key(str(event)):
+                    print defs[str(event)] % args
+                else:
+                    if defs.has_key(str(0)): print defs[str(0)] % args
+            except TypeError:
+                if defs.has_key(str(event)):
+                    print defs[str(event)]
+                    print args
+                else:
+                    if defs.has_key(str(0)):
+                        print defs[str(0)]
+                        print args
+
+    except IOError, struct.error: sys.exit()
+
+if summary:
+	ppc_instr_summary()

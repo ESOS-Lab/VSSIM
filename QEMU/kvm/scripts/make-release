@@ -1,0 +1,60 @@
+#!/bin/bash -e
+
+usage() {
+    echo "usage: $0 [--upload] [--formal] commit [name]"
+    exit 1
+}
+
+[[ -f ~/.kvmreleaserc ]] && . ~/.kvmreleaserc
+
+upload=
+formal=
+
+releasedir=~/sf-release
+[[ -z "$TMP" ]] && TMP="/tmp"
+tmpdir="$TMP/qemu-kvm-make-release.$$"
+while [[ "$1" = -* ]]; do
+    opt="$1"
+    shift
+    case "$opt" in
+	--upload)
+	    upload="yes"
+	    ;;
+	--formal)
+	    formal="yes"
+	    ;;
+	*)
+	    usage
+	    ;;
+    esac
+done
+
+commit="$1"
+name="$2"
+
+if [[ -z "$commit" ]]; then
+    usage
+fi
+
+if [[ -z "$name" ]]; then
+    name="$commit"
+fi
+
+tarball="$releasedir/$name.tar"
+
+cd "$(dirname "$0")"/../..
+git archive --prefix="$name/" --format=tar "$commit" > "$tarball"
+
+if [[ -n "$formal" ]]; then
+    mkdir -p "$tmpdir"
+    echo "$name" > "$tmpdir/KVM_VERSION"
+    tar -rf "$tarball" --transform "s,^,$name/," -C "$tmpdir" "KVM_VERSION"
+    rm -rf "$tmpdir"
+fi
+
+gzip -9 "$tarball"
+tarball="$tarball.gz"
+
+if [[ -n "$upload" ]]; then
+    rsync --progress -h "$tarball" avik@frs.sourceforge.net:uploads/
+fi

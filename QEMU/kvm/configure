@@ -1,0 +1,159 @@
+#!/bin/bash
+
+prefix=/usr/local
+kerneldir=/lib/modules/$(uname -r)/build
+cc=gcc
+ld=ld
+objcopy=objcopy
+ar=ar
+want_module=1
+qemu_cflags=
+qemu_ldflags=
+kvm_trace=
+qemu_opts=()
+cross_prefix=
+arch=`uname -m`
+target_exec=
+# don't use uname if kerneldir is set
+no_uname=
+if [ -z "TMPDIR" ] ; then
+    TMPDIR=.
+fi
+
+if [ ! -e kernel/Makefile ]; then
+    want_module=
+fi
+
+usage() {
+    cat <<-EOF
+	Usage: $0 [options]
+
+	Options include:
+	    --arch=ARCH            architecture to compile for ($arch)
+	    --cross-prefix=PREFIX  prefix for cross compile
+	    --prefix=PREFIX        where to install things ($prefix)
+	    --with-patched-kernel  don't use external module
+	    --with-kvm-trace       Enable kvm_trace
+	    --kerneldir=DIR        kernel build directory ($kerneldir)
+	    --qemu-cflags=CFLAGS   CFLAGS to add to qemu configuration
+	    --qemu-ldflags=LDFLAGS LDFLAGS to add to qemu configuration
+
+	Any additional option is given to qemu's configure verbatim; including:
+
+EOF
+    cd qemu
+    ./configure --help | egrep "enable-|disable-" \
+	| grep -v user | grep -v system | grep -v kqemu | grep -v kvm \
+	| sed -e "s/^  /    /g" \
+	| sed -e"s/  enable/enable/g" | sed -e "s/  disable/disable/g"
+    exit 1
+}
+
+while [[ "$1" = -* ]]; do
+    opt="$1"; shift
+    arg=
+    hasarg=
+    if [[ "$opt" = *=* ]]; then
+	arg="${opt#*=}"
+	opt="${opt%%=*}"
+	hasarg=1
+    fi
+    case "$opt" in
+	--prefix)
+	    prefix="$arg"
+	    ;;
+	--kerneldir)
+	    kerneldir="$arg"
+            no_uname=1
+	    ;;
+	--with-patched-kernel)
+	    want_module=
+	    ;;
+	--with-kvm-trace)
+	    kvm_trace=y
+	    ;;
+	--qemu-cflags)
+	    qemu_cflags="$arg"
+	    ;;
+	--qemu-ldflags)
+	    qemu_ldflags="$arg"
+	    ;;
+	--arch)
+	    arch="$arg"
+	    ;;
+	--cross-prefix)
+	    cross_prefix="$arg"
+            ;;
+	--help)
+	    usage
+	    ;;
+	*)
+	    qemu_opts=("${qemu_opts[@]}" "$opt${hasarg:+=$arg}")
+	    ;;
+    esac
+done
+
+
+#set kenel directory
+libkvm_kerneldir=$(readlink -f kernel)
+
+case $arch in
+    i?86*|x86_64*)
+        arch=${arch/#i?86/i386}
+        target_exec="x86_64-softmmu"
+        qemu_cflags="$qemu_cflags -DCONFIG_X86"
+        ;;
+    ia64*)
+        target_exec="ia64-softmmu"
+        ;;
+    powerpc*)
+        target_exec="ppcemb-softmmu"
+        qemu_cflags="$qemu_cflags -I $PWD/libfdt"
+        qemu_ldflags="$qemu_ldflags -L $PWD/libfdt"
+        ;;
+esac
+
+processor=${arch#*-}
+arch=${arch%%-*}
+
+#configure kernel module
+[ -e kernel/Makefile ] && (cd kernel;
+    ./configure \
+	--kerneldir="$kerneldir" \
+	--arch="$arch" \
+	$([ -z ${want_module} ] && echo "--with-patched-kernel") \
+	${cross_prefix:+"--cross-prefix=$cross_prefix"} \
+	${kvm_trace:+"--with-kvm-trace"}
+)
+
+#configure user dir
+(cd user; ./configure --prefix="$prefix" --kerneldir="$libkvm_kerneldir" \
+          --arch="$arch" --processor="$processor" \
+          ${cross_prefix:+"--cross-prefix=$cross_prefix"})
+
+#configure qemu
+(cd qemu; ./configure --target-list=$target_exec \
+    --disable-kqemu \
+    --extra-cflags="-I $PWD/../libkvm $qemu_cflags" \
+    --extra-ldflags="-L $PWD/../libkvm $qemu_ldflags" \
+    --kerneldir="$libkvm_kerneldir" \
+    --prefix="$prefix" \
+    ${cross_prefix:+"--cross-prefix=$cross_prefix"} \
+    ${cross_prefix:+"--cpu=$arch"} "${qemu_opts[@]}"
+) || usage
+
+
+cat <<EOF > config.mak
+ARCH=$arch
+PROCESSOR=$processor
+PREFIX=$prefix
+KERNELDIR=$kerneldir
+KERNELSOURCEDIR=$kernelsourcedir
+LIBKVM_KERNELDIR=$libkvm_kerneldir
+WANT_MODULE=$want_module
+CROSS_COMPILE=$cross_prefix
+CC=$cross_prefix$cc
+LD=$cross_prefix$ld
+OBJCOPY=$cross_prefix$objcopy
+AR=$cross_prefix$ar
+EOF

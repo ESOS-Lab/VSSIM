@@ -1,0 +1,129 @@
+#!/usr/bin/python
+
+import curses
+import sys, os, time, optparse
+
+class Stats:
+    def __init__(self, fields = None):
+        def wanted(key):
+            import re
+            if not fields:
+                return True
+            return re.match(fields, key) != None
+        self.base = '/sys/kernel/debug/kvm'
+        self.values = {}
+        for key in os.listdir(self.base):
+            if wanted(key):
+                self.values[key] = None
+    def get(self):
+        for key, oldval in self.values.iteritems():
+            newval = int(file(self.base + '/' + key).read())
+            newdelta = None
+            if oldval is not None:
+                newdelta = newval - oldval[0]
+            self.values[key] = (newval, newdelta)
+        return self.values
+
+if not os.access('/sys/kernel/debug', os.F_OK):
+    print 'Please enable CONFIG_DEBUG_FS in your kernel'
+    sys.exit(1)
+if not os.access('/sys/kernel/debug/kvm', os.F_OK):
+    print "Please mount debugfs ('mount -t debugfs debugfs /sys/kernel/debug')"
+    print "and ensure the kvm modules are loaded"
+    sys.exit(1)
+
+label_width = 20
+number_width = 10
+
+def tui(screen, stats):
+    curses.use_default_colors()
+    curses.noecho()
+    def refresh():
+        screen.erase()
+        screen.addstr(0, 0, 'kvm statistics')
+        row = 2
+        s = stats.get()
+        for key in sorted(s.keys()):
+            if row >= screen.getmaxyx()[0]:
+                break
+            values = s[key]
+            col = 1
+            screen.addstr(row, col, key)
+            col += label_width
+            screen.addstr(row, col, '%10d' % (values[0],))
+            col += number_width
+            if values[1] is not None:
+                screen.addstr(row, col, '%8d' % (values[1],))
+            row += 1
+        screen.refresh()
+
+    while True:
+        refresh()
+        curses.halfdelay(10)
+        try:
+            c = screen.getkey()
+            if c == 'q':
+                break
+        except KeyboardInterrupt:
+            break
+        except curses.error:
+            continue
+
+def batch(stats):
+    s = stats.get()
+    time.sleep(1)
+    s = stats.get()
+    for key in sorted(s.keys()):
+        values = s[key]
+        print '%-22s%10d%10d' % (key, values[0], values[1])
+
+def log(stats):
+    keys = sorted(stats.get().iterkeys())
+    def banner():
+        for k in keys:
+            print '%10s' % k[0:9],
+        print
+    def statline():
+        s = stats.get()
+        for k in keys:
+            print ' %9d' % s[k][1],
+        print
+    line = 0
+    banner_repeat = 20
+    while True:
+        time.sleep(1)
+        if line % banner_repeat == 0:
+            banner()
+        statline()
+        line += 1
+
+options = optparse.OptionParser()
+options.add_option('-1', '--once', '--batch',
+                   action = 'store_true',
+                   default = False,
+                   dest = 'once',
+                   help = 'run in batch mode for one second',
+                   )
+options.add_option('-l', '--log',
+                   action = 'store_true',
+                   default = False,
+                   dest = 'log',
+                   help = 'run in logging mode (like vmstat)',
+                   )
+options.add_option('-f', '--fields',
+                   action = 'store',
+                   default = None,
+                   dest = 'fields',
+                   help = 'fields to display (regex)',
+                   )
+(options, args) = options.parse_args(sys.argv)
+
+stats = Stats(fields = options.fields)
+
+if options.log:
+    log(stats)
+elif not options.once:
+    import curses.wrapper
+    curses.wrapper(tui, stats)
+else:
+    batch(stats)

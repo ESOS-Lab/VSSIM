@@ -1,0 +1,36 @@
+#!/usr/bin/python
+
+import sys, tarfile, os.path
+
+# usage: $0 combined.tar.gz qemu.tar.gz kvm-kmod.tar.gz
+
+outname, qemuname, kmodname = sys.argv[1:4]
+
+out = tarfile.open(name = outname, mode = 'w:gz')
+
+def tarcopy(dst, src, transform):
+    for member in src:
+        f = src.extractfile(member)
+        member.name = transform(member.name)
+        dst.addfile(member, f)
+
+def stem(fname):
+    fname = os.path.basename(fname)
+    if fname.endswith('.tar.gz'):
+        fname = fname[:-7]
+    return fname
+
+def transformer(old, new):
+    def transform(fname):
+        if fname.startswith(old + '/'):
+            fname = new + fname[len(old):]
+        return fname
+    return transform
+
+tarcopy(out, tarfile.open(name = qemuname),
+        transformer(stem(qemuname), stem(outname)))
+
+tarcopy(out, tarfile.open(name = kmodname),
+        transformer(stem(kmodname), stem(outname) + '/kvm/kernel'))
+
+

@@ -1,0 +1,17 @@
+Index: rombios32.c
+===================================================================
+RCS file: /cvsroot/bochs/bochs/bios/rombios32.c,v
+retrieving revision 1.9
+diff -u -w -r1.9 rombios32.c
+--- rombios32.c 20 Feb 2007 09:36:55 -0000      1.9
++++ rombios32.c 2 May 2007 06:07:31 -0000
+@@ -1191,7 +1191,7 @@
+ {
+     memcpy(h->signature, sig, 4);
+     h->length = cpu_to_le32(len);
+-    h->revision = 0;
++    h->revision = 1;
+ #ifdef BX_QEMU
+     memcpy(h->oem_id, "QEMU  ", 6);
+     memcpy(h->oem_table_id, "QEMU", 4);
+

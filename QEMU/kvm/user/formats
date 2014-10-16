@@ -1,0 +1,31 @@
+0x00000000  %(ts)d (+%(relts)12d)  unknown (0x%(event)016x) vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ 0x%(1)08x 0x%(2)08x 0x%(3)08x 0x%(4)08x 0x%(5)08x ]
+
+0x00010001  %(ts)d (+%(relts)12d)  VMENTRY       vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x
+0x00010002  %(ts)d (+%(relts)12d)  VMEXIT        vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ exitcode = 0x%(1)08x, rip = 0x%(3)08x %(2)08x ]
+0x00020001  %(ts)d (+%(relts)12d)  PAGE_FAULT    vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ errorcode = 0x%(1)08x, virt = 0x%(3)08x %(2)08x ]
+0x00020002  %(ts)d (+%(relts)12d)  INJ_VIRQ      vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ vector = 0x%(1)02x ]
+0x00020003  %(ts)d (+%(relts)12d)  REDELIVER_EVT vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ vector = 0x%(1)02x ]
+0x00020004  %(ts)d (+%(relts)12d)  PEND_INTR     vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ vector = 0x%(1)02x ]
+0x00020005  %(ts)d (+%(relts)12d)  IO_READ       vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ port = 0x%(1)04x, size = %(2)d ]
+0x00020006  %(ts)d (+%(relts)12d)  IO_WRITE      vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ port = 0x%(1)04x, size = %(2)d ]
+0x00020007  %(ts)d (+%(relts)12d)  CR_READ       vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ CR# = %(1)d, value = 0x%(3)08x %(2)08x ]
+0x00020008  %(ts)d (+%(relts)12d)  CR_WRITE      vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ CR# = %(1)d, value = 0x%(3)08x %(2)08x ]
+0x00020009  %(ts)d (+%(relts)12d)  DR_READ       vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ DR# = %(1)d, value = 0x%(2)08x ]
+0x0002000A  %(ts)d (+%(relts)12d)  DR_WRITE      vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ DR# = %(1)d, value = 0x%(2)08x ]
+0x0002000B  %(ts)d (+%(relts)12d)  MSR_READ      vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ MSR# = 0x%(1)08x, data = 0x%(3)08x %(2)08x ]
+0x0002000C  %(ts)d (+%(relts)12d)  MSR_WRITE     vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ MSR# = 0x%(1)08x, data = 0x%(3)08x %(2)08x ]
+0x0002000D  %(ts)d (+%(relts)12d)  CPUID         vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ func = 0x%(1)08x, eax = 0x%(2)08x, ebx = 0x%(3)08x, ecx = 0x%(4)08x edx = 0x%(5)08x]
+0x0002000E  %(ts)d (+%(relts)12d)  INTR          vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ vector = 0x%(1)02x ]
+0x0002000F  %(ts)d (+%(relts)12d)  NMI           vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x
+0x00020010  %(ts)d (+%(relts)12d)  VMMCALL       vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ func = 0x%(1)08x ]
+0x00020011  %(ts)d (+%(relts)12d)  HLT           vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x
+0x00020012  %(ts)d (+%(relts)12d)  CLTS          vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x
+0x00020013  %(ts)d (+%(relts)12d)  LMSW          vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ value = 0x%(1)08x ]
+0x00020014  %(ts)d (+%(relts)12d)  APIC_ACCESS   vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ offset = 0x%(1)08x ]
+0x00020015  %(ts)d (+%(relts)12d)  TDP_FAULT     vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ errorcode = 0x%(1)08x, virt = 0x%(3)08x %(2)08x ]
+# ppc: tlb traces
+0x00020016  GTLB_WRITE    vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ index = 0x%(1)08x, tid = 0x%(2)08x, word1=0x%(3)08x, word2=0x%(4)08x, word3=0x%(5)08x ]
+0x00020017  STLB_WRITE    vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ index = 0x%(1)08x, tid = 0x%(2)08x, word1=0x%(3)08x, word2=0x%(4)08x, word3=0x%(5)08x ]
+0x00020018  STLB_INVAL    vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ index = 0x%(1)08x, tid = 0x%(2)08x, word1=0x%(3)08x, word2=0x%(4)08x, word3=0x%(5)08x ]
+# ppc: instruction emulation - this type is handled more complex in kvmtrace_format, but listed to show the eventid and transported data
+#0x00020019  %(ts)d (+%(relts)12d)  PPC_INSTR     vcpu = 0x%(vcpu)08x  pid = 0x%(pid)08x [ instr = 0x%(1)08x, pc = 0x%(2)08x, emul = 0x%(3)08x, nsec = %(4)08d ]
