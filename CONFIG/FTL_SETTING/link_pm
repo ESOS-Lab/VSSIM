@@ -15,20 +15,20 @@
 
 
 # Link make file configuration
-ln -s ../QEMU_MAKEFILE/Makefile_pm					../../QEMU/Makefile.target
+ln -s ../CONFIG/QEMU_MAKEFILE/Makefile_pm				../../QEMU/Makefile.target
 
 # SSD operation control header file "common.h"
-ln -s ../../FTL_SOURCE/COMMON/common.h					../../QEMU/hw/common.h
+ln -s ../../FTL/COMMON/common.h						../../QEMU/hw/common.h
 ln -s ../../SSD_MODULE/ssd_util.h					../../QEMU/hw/ssd_util.h
 
 # HEADER FILE
-ln -s ../../FTL_SOURCE/PAGE_MAP/ftl_type.h				../../QEMU/hw/ftl_type.h
-ln -s ../../FTL_SOURCE/PAGE_MAP/ftl.h					../../QEMU/hw/ftl.h
-ln -s ../../FTL_SOURCE/PAGE_MAP/ftl_mapping_manager.h			../../QEMU/hw/ftl_mapping_manager.h
-ln -s ../../FTL_SOURCE/PAGE_MAP/ftl_inverse_mapping_manager.h		../../QEMU/hw/ftl_inverse_mapping_manager.h
-ln -s ../../FTL_SOURCE/PAGE_MAP/ftl_gc_manager.h			../../QEMU/hw/ftl_gc_manager.h
-ln -s ../../FTL_SOURCE/PAGE_MAP/ftl_cache.h				../../QEMU/hw/ftl_cache.h
-ln -s ../../FTL_SOURCE/PERF_MODULE/ftl_perf_manager.h			../../QEMU/hw/ftl_perf_manager.h
+ln -s ../../FTL/PAGE_MAP/ftl_type.h					../../QEMU/hw/ftl_type.h
+ln -s ../../FTL/PAGE_MAP/ftl.h						../../QEMU/hw/ftl.h
+ln -s ../../FTL/PAGE_MAP/ftl_mapping_manager.h				../../QEMU/hw/ftl_mapping_manager.h
+ln -s ../../FTL/PAGE_MAP/ftl_inverse_mapping_manager.h			../../QEMU/hw/ftl_inverse_mapping_manager.h
+ln -s ../../FTL/PAGE_MAP/ftl_gc_manager.h				../../QEMU/hw/ftl_gc_manager.h
+ln -s ../../FTL/PAGE_MAP/ftl_cache.h					../../QEMU/hw/ftl_cache.h
+ln -s ../../FTL/PERF_MODULE/ftl_perf_manager.h				../../QEMU/hw/ftl_perf_manager.h
 
 ln -s ../../SSD_MODULE/ssd_trim_manager.h				../../QEMU/hw/ssd_trim_manager.h
 ln -s ../../SSD_MODULE/ssd_io_manager.h					../../QEMU/hw/ssd_io_manager.h
@@ -38,12 +38,12 @@ ln -s ../../FIRMWARE/ssd.h						../../QEMU/hw/ssd.h
 ln -s ../../FIRMWARE/firm_buffer_manager.h				../../QEMU/hw/firm_buffer_manager.h
 
 # SOURCE FILLE
-ln -s ../../FTL_SOURCE/PAGE_MAP/ftl.c					../../QEMU/hw/ftl.c
-ln -s ../../FTL_SOURCE/PAGE_MAP/ftl_mapping_manager.c			../../QEMU/hw/ftl_mapping_manager.c
-ln -s ../../FTL_SOURCE/PAGE_MAP/ftl_inverse_mapping_manager.c		../../QEMU/hw/ftl_inverse_mapping_manager.c
-ln -s ../../FTL_SOURCE/PAGE_MAP/ftl_gc_manager.c			../../QEMU/hw/ftl_gc_manager.c
-ln -s ../../FTL_SOURCE/PAGE_MAP/ftl_cache.c				../../QEMU/hw/ftl_cache.c
-ln -s ../../FTL_SOURCE/PERF_MODULE/ftl_perf_manager.c			../../QEMU/hw/ftl_perf_manager.c
+ln -s ../../FTL/PAGE_MAP/ftl.c						../../QEMU/hw/ftl.c
+ln -s ../../FTL/PAGE_MAP/ftl_mapping_manager.c				../../QEMU/hw/ftl_mapping_manager.c
+ln -s ../../FTL/PAGE_MAP/ftl_inverse_mapping_manager.c			../../QEMU/hw/ftl_inverse_mapping_manager.c
+ln -s ../../FTL/PAGE_MAP/ftl_gc_manager.c				../../QEMU/hw/ftl_gc_manager.c
+ln -s ../../FTL/PAGE_MAP/ftl_cache.c					../../QEMU/hw/ftl_cache.c
+ln -s ../../FTL/PERF_MODULE/ftl_perf_manager.c				../../QEMU/hw/ftl_perf_manager.c
 
 ln -s ../../SSD_MODULE/ssd_trim_manager.c				../../QEMU/hw/ssd_trim_manager.c
 ln -s ../../SSD_MODULE/ssd_io_manager.c					../../QEMU/hw/ssd_io_manager.c
