@@ -187,13 +187,9 @@ void ENQUEUE_IO(int io_type, int32_t sector_nb, unsigned int length)
 	lt = localtime(&(tv.tv_sec));
 	curr_time = lt->tm_hour*3600 + lt->tm_min*60 + lt->tm_sec + (double)tv.tv_usec/(double)1000000;
 	if(io_type == READ){
-		//fprintf(fp_workload,"%lf %d %ld %u %x\n",curr_time, 0, sector_nb, length, 1);
-		//fprintf(fp_workload,"%lf %d %u %x\n",curr_time, sector_nb, length, 1);
 		fprintf(fp_workload,"%lf %d %u %x R\n",curr_time, sector_nb, length, 1);
 	}
 	else if(io_type == WRITE){
-		//fprintf(fp_workload,"%lf %d %ld %u %x\n",curr_time, 0, sector_nb, length, 0);
-		//fprintf(fp_workload,"%lf %d %u %x\n",curr_time, sector_nb, length, 0);
 		fprintf(fp_workload,"%lf %d %u %x W\n",curr_time, sector_nb, length, 0);
 	}
 	fclose(fp_workload);
