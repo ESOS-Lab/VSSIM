@@ -1,0 +1,1 @@
+This is a folder where iso files of necessary OS are located when VSSIM installs Guest OS.
