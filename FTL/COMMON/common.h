@@ -1,7 +1,7 @@
 // VSSIM common.h
 // Copyright(c)2014
 // Hanyang University, Seoul, Korea
-// Embedded Software Systems Laboratory. All right reserved
+// Embedded Software Systems Laboratory. All right reserved.
 
 #ifndef _COMMON_H_
 #define _COMMON_H_
