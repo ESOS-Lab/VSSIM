@@ -21,8 +21,24 @@ The setting was recorded in a Linux environment as follows.
 - Kernel Version: 2.6.32
 
 1.1. VSSIM Code Download
+Download the latest version from github
+
+    $ git clone https://github.com/ESOS-Lab/VSSIM.git
 
 1.2. Compile /Execution Setting
+
+1.2.1. QEMU, KVM Installation
+
+    $ sudo apt-get install qemu
+    $ sudo apt-get install qemu-kvm
+
+1.2.2. Qt3 Installation
+
+    $ sudo apt-get install qt3-dev-tools
+
+1.2.3. Resolving Library Dependency
+
+    $ sudo apt-get install zlib1g-dev libsdl-image1.2-dev libgnutls-dev libvncserver-dev libpci-dev
 
 2. Code Structure
 
