@@ -14,18 +14,18 @@ Architecture
 
 User Guide
 -----
-1. Settings
+### Settings
 
 The setting was recorded in a Linux environment as follows.
 - Linux OS: Ubuntu 10.04
 - Kernel Version: 2.6.32
 
-1.1. VSSIM Code Download
+1. VSSIM Code Download
 Download the latest version from github
 
     $ git clone https://github.com/ESOS-Lab/VSSIM.git
 
-1.2. Compile /Execution Setting
+2. Compile /Execution Setting
 
 - QEMU, KVM Installation
 
@@ -40,15 +40,15 @@ Download the latest version from github
 
     $ sudo apt-get install zlib1g-dev libsdl-image1.2-dev libgnutls-dev libvncserver-dev libpci-dev
 
-2. Code Structure
+3. Code Structure
 
-2.1 Folder Composition
+### Folder Composition
 
-- CONFIG: In CONFIG folder, there is ssd.conf file, which is used to configurate virtual SSD, and a source code that uses this file to design virtual SSD.
+1. CONFIG: In CONFIG folder, there is ssd.conf file, which is used to configurate virtual SSD, and a source code that uses this file to design virtual SSD.
 
-- FIRMWARE: In FIRMWARE folder, there is firmware(IO Buffer) source code.
+2. FIRMWARE: In FIRMWARE folder, there is firmware(IO Buffer) source code.
 
-- FTL: In FTL folder, subsequent folders of FTL_SOURCE folder are COMMON, PAGE_MAP, PERF_MODULE, and QEMU_MAKEFILE folder.
+3. FTL: In FTL folder, subsequent folders of FTL_SOURCE folder are COMMON, PAGE_MAP, PERF_MODULE, and QEMU_MAKEFILE folder.
 
     * COMMON: There is ‘common.h’ file that includes FTL header file.
 
@@ -58,17 +58,17 @@ Download the latest version from github
 
     * QEMU_MAKER: There is Makefile, which QEMU uses to compile FTL code.
 
-- MONITOR: There is a source code of SSD Monitor, which is a graphic user interface.
+4. MONITOR: There is a source code of SSD Monitor, which is a graphic user interface.
 
-- OS: This is a folder where iso files of necessary OS are located when VSSIM installs Guest OS.
+5. OS: This is a folder where iso files of necessary OS are located when VSSIM installs Guest OS.
 
-- QEMU: QEMU related source code is located.
+6. QEMU: QEMU related source code is located.
 
-- RAMDISK: There is a Shell script that creates Ramdisk and executes mount.
+7. RAMDISK: There is a Shell script that creates Ramdisk and executes mount.
 
-- SSD_MODULE: There is SSD IO Manager related source code that emulates SSD’s NAND IO operation, and also SSD Log Manager related code, which is a communication source code that transfers virtual SSD’s operation to SSD Monitor. 
+8. SSD_MODULE: There is SSD IO Manager related source code that emulates SSD’s NAND IO operation, and also SSD Log Manager related code, which is a communication source code that transfers virtual SSD’s operation to SSD Monitor. 
 
-3. Virtual SSD Setting
+### Virtual SSD Setting
 
 3.1 ssd.conf File
 
