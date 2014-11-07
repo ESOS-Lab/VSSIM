@@ -16,9 +16,9 @@ User Guid
 -----
 1. Settings
 
-1.1 VSSIM Code Download
+1.1. VSSIM Code Download
 
-1.2 Compile /Execution Setting
+1.2. Compile /Execution Setting
 
 2. Code Structure
 
