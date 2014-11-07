@@ -72,56 +72,106 @@ Download the latest version from github
 
 This section explains about the structure of virtual SSD, in other words, the section will describe how to set the number of flash memories, the number of channels, the number of ways, page size, and etc. Virtual SSD Setting is done by editing ‘ssd.conf file in VSSIM_V/CONFIG. What each parameter refers to in the file is shown as follow.
 
+1. ssd.conf File:
+
     - FILE_NAME_HDA: the path which virtual ssd image for hda is created
-
     - FILE_NAME_HDB: the path which virtual ssd image for hdb is created
-
     - PAGE_SIZE: the size of one page (Byte)
-
     - SECTOR_SIZE: the size of one sector (Byte)
-
     - FLASH_NB: the number of flash memories in a whole SSD (unit)
-
     - BLOCK_NB: the number of blocks per flash memory (unit)
-
     - PLANES_PER_FLASH: the number of planes per flash memory (unit)
-
     - REG_WRITE_DELAY: delay in register write (usec)
-
     - CELL_PROGRAM_DELAY: delay in nand page write (usec)
-
     - REG_READ_DELAY: delay in register read (usec)
-
     - CELL_READ_DELAY: delay in nand page read (usec)
-
     - BLOCK_ERASE_DELAY: delay in nand block erase (usec)
-
     - CHANNEL_SWITCH_DELAY_R: delay in channel switch during read operation (usec)
-
     - CHANNEL_SWITCH_DELAY_W: delay in channel switch during write operation (usec)
     - CHANNEL_NB: the number of channels in SSD (usec)
-
     - WRITE_BUFFER_FRAME_NB: the number of buffer frame for write operation (sector)
-
     - READ_BUFFER_FRAME_NB: the number of buffer frame for read operation (sector)
+    - OVP: Over provisioning percentage (%)
 
-OVP: Over provisioning percentage (%)
 
-3.1 ssd.conf File
+#### Compile / Execution
 
-4. Compile / Execution
+This section explains the entire process of actually compiling VSSIM and making it operate in QEMU.
 
-4.1 Monitor Compile
+1. Monitor Compile
 
-4.2 FTL Setting
+- Location: Inside the VSSIM/MONITOR/SSD_MONITOR_PM folder, there is a GUI(Graphic User Interface) written in Qt3 to show VSSIM operation conditions.
 
-4.3 OS Image File Preparation
+- Compile Method
 
-4.4 QEMU Compile
+    $ make clean
+    $ make
 
-4.5 Ramdisk Formation
+2. FTL Setting
 
-4.6 VSSIM Execution
+VSSIM is modularized to make it easy for the user to easily change FTL. One can change FTL using simple link/unlink script.
+
+- Location: There is link/unlink file inside the VSSIM/CONFIG/ftl-setting folder.
+
+- Compile Method 
+
+    $ ./unlink_pm
+    $ ./link_pm
+
+3. OS Image File Preparation
+
+OS image file is needed to execute VSSIM
+
+- Location: Place an OS image file under VSSIM/OS folder. (VSSIM Code distribution version does not include an OS image.)
+
+- Example of an OS Image File
+
+    $ MW_WIN7_AIO_FINAL_FF_DVD.iso
+    $ ubuntu-10.04.4-desktop-i386.iso
+
+4. QEMU Compile
+
+QEMU Compile should be done in prior to executing VSSIM. VSSIM operates in QEMU.
+
+- Location: VSSIM/QEMU
+
+- Compile
+
+    $ make clean
+    $ ./configure
+    $ make
+
+5. Ramdisk Formation
+
+We We recommend running on Ramdisk for quick execution of VSSIM. When VSSIM is executed on hard disk, the performance of simulator can fall greatly. Formation of Ramdisk uses Shell script that is included in VSSIM/RAMDISK folder, the contents of which are as follows.
+
+    $ mkdir rd
+    $ chmod 0755 rd
+    $ sudo mount -t tmpfs -o size=8g tmpfs ./rd
+
+When Shell script of ram-mount.sh is executed, ‘rd’ folder is created and 8GByte sized Ramdisk is created as tmpfs filesystem. If you wish to alter the size of Ramdisk, you can change the part that is written as ‘size=8g’ in Shell script. (g refers to GByte.)
+
+- Location: VSSIM/RAMDISK/
+
+- Execution
+
+    $ ./ram_mount.sh
+
+6. VSSIM Execution
+
+- Location: VSSIM/QEMU/x86_64-softmmu
+
+- Execution
+
+    $./run.sh
+
+- Cautions: "run.sh"file is as follows
+
+    rm -rf data/*.dat
+    qemu-img create -f qcow /mnt/rd/ssd.img 16G
+    ./qemu-system-x86_64 -m 2048 -cpu core2duo -hda /mnt/rd/ssd.img -cdrom ../../OS/MW_WIN7_AIO_FINAL_FF_DVD.iso -usbdevice tablet
+  
+- MW_WIN7_AIO_FINAL_FF_DVD.iso’ File should be located in VSSIM/OS. 
 
 5. Error Settlement
 
