@@ -70,7 +70,26 @@ Download the latest version from github
 
 #### Virtual SSD Setting
 
-This section explains about the structure of virtual SSD, in other words, the section will describe how to set the number of flash memories, the number of channels, the number of ways, page size, and etc. Virtual SSD Setting is done by editing ‘ssd.conf’ file in VSSIM_V1.x/CONFIG. What each parameter refers to in the file is shown is Table 1.
+This section explains about the structure of virtual SSD, in other words, the section will describe how to set the number of flash memories, the number of channels, the number of ways, page size, and etc. Virtual SSD Setting is done by editing ‘ssd.conf file in VSSIM_V/CONFIG. What each parameter refers to in the file is shown as follow.
+
+FILE_NAME_HDA: the path which virtual ssd image for hda is created
+FILE_NAME_HDB: the path which virtual ssd image for hdb is created
+PAGE_SIZE: the size of one page (Byte)
+SECTOR_SIZE: the size of one sector (Byte)
+FLASH_NB: the number of flash memories in a whole SSD (unit)
+BLOCK_NB: the number of blocks per flash memory (unit)
+PLANES_PER_FLASH: the number of planes per flash memory (unit)
+REG_WRITE_DELAY: delay in register write (usec)
+CELL_PROGRAM_DELAY: delay in nand page write (usec)
+REG_READ_DELAY: delay in register read (usec)
+CELL_READ_DELAY: delay in nand page read (usec)
+BLOCK_ERASE_DELAY: delay in nand block erase (usec)
+CHANNEL_SWITCH_DELAY_R: delay in channel switch during read operation (usec)
+CHANNEL_SWITCH_DELAY_W: delay in channel switch during write operation (usec)
+CHANNEL_NB: the number of channels in SSD (usec)
+WRITE_BUFFER_FRAME_NB: the number of buffer frame for write operation (sector)
+READ_BUFFER_FRAME_NB: the number of buffer frame for read operation (sector)
+OVP: Over provisioning percentage (%)
 
 3.1 ssd.conf File
 
