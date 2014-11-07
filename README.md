@@ -12,6 +12,26 @@ Architecture
 -----
 ![VSSIM Architecture]( http://dmclab.hanyang.ac.kr/wikidata/img/vssim_architecture.jpg)
 
+User Guid
+-----
+1. Settings
+1.1 VSSIM Code Download
+1.2 Compile /Execution Setting
+2. Code Structure
+2.1 Folder Composition
+3. Virtual SSD Setting
+3.1 ssd.conf File
+4. Compile / Execution
+4.1 Monitor Compile
+4.2 FTL Setting
+4.3 OS Image File Preparation
+4.4 QEMU Compile
+4.5 Ramdisk Formation
+4.6 VSSIM Execution
+5. Error Settlement
+5.1 In case of libqt-mt.so.3 related error
+5.2 Failure to connect with SSD Monitor
+
 
 Publication
 -----
