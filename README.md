@@ -12,13 +12,13 @@ Architecture
 -----
 ![VSSIM Architecture]( http://dmclab.hanyang.ac.kr/wikidata/img/vssim_architecture.jpg)
 
-User Guid
+User Guide
 -----
 1. Settings
 
 The setting was recorded in a Linux environment as follows.
-    - Linux OS: Ubuntu 10.04
-    - Kernel Version: 2.6.32
+- Linux OS: Ubuntu 10.04
+- Kernel Version: 2.6.32
 
 1.1. VSSIM Code Download
 
