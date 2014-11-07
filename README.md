@@ -27,22 +27,46 @@ Download the latest version from github
 
 1.2. Compile /Execution Setting
 
-1.2.1. QEMU, KVM Installation
+- QEMU, KVM Installation
 
     $ sudo apt-get install qemu
     $ sudo apt-get install qemu-kvm
 
-1.2.2. Qt3 Installation
+- Qt3 Installation
 
     $ sudo apt-get install qt3-dev-tools
 
-1.2.3. Resolving Library Dependency
+- Resolving Library Dependency
 
     $ sudo apt-get install zlib1g-dev libsdl-image1.2-dev libgnutls-dev libvncserver-dev libpci-dev
 
 2. Code Structure
 
 2.1 Folder Composition
+
+- CONFIG: In CONFIG folder, there is ssd.conf file, which is used to configurate virtual SSD, and a source code that uses this file to design virtual SSD.
+
+- FIRMWARE: In FIRMWARE folder, there is firmware(IO Buffer) source code.
+
+- FTL: In FTL folder, subsequent folders of FTL_SOURCE folder are COMMON, PAGE_MAP, PERF_MODULE, and QEMU_MAKEFILE folder.
+
+    * COMMON: There is ‘common.h’ file that includes FTL header file.
+
+    * PAGE_MAP: There is Page Mapping FTL Code and Garbage Collection Code.
+
+    * PERF_MODULE: There is a source code of VSSIM Performance Module, which manages information on VSSIM’s SSD behavior and transfers this to monitor.
+
+    * QEMU_MAKER: There is Makefile, which QEMU uses to compile FTL code.
+
+- MONITOR: There is a source code of SSD Monitor, which is a graphic user interface.
+
+- OS: This is a folder where iso files of necessary OS are located when VSSIM installs Guest OS.
+
+- QEMU: QEMU related source code is located.
+
+- RAMDISK: There is a Shell script that creates Ramdisk and executes mount.
+
+- SSD_MODULE: There is SSD IO Manager related source code that emulates SSD’s NAND IO operation, and also SSD Log Manager related code, which is a communication source code that transfers virtual SSD’s operation to SSD Monitor. 
 
 3. Virtual SSD Setting
 
