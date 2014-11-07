@@ -14,7 +14,7 @@ Architecture
 
 User Guide
 -----
-### Settings
+#### Settings
 
 The setting was recorded in a Linux environment as follows.
 - Linux OS: Ubuntu 10.04
@@ -40,9 +40,9 @@ Download the latest version from github
 
     $ sudo apt-get install zlib1g-dev libsdl-image1.2-dev libgnutls-dev libvncserver-dev libpci-dev
 
-3. Code Structure
+#### Folder Composition
 
-### Folder Composition
+![Folder Composition]( http://dmclab.hanyang.ac.kr/wikidata/img/folder_arch_git.jpg)
 
 1. CONFIG: In CONFIG folder, there is ssd.conf file, which is used to configurate virtual SSD, and a source code that uses this file to design virtual SSD.
 
@@ -68,7 +68,9 @@ Download the latest version from github
 
 8. SSD_MODULE: There is SSD IO Manager related source code that emulates SSD’s NAND IO operation, and also SSD Log Manager related code, which is a communication source code that transfers virtual SSD’s operation to SSD Monitor. 
 
-### Virtual SSD Setting
+#### Virtual SSD Setting
+
+This section explains about the structure of virtual SSD, in other words, the section will describe how to set the number of flash memories, the number of channels, the number of ways, page size, and etc. Virtual SSD Setting is done by editing ‘ssd.conf’ file in VSSIM_V1.x/CONFIG. What each parameter refers to in the file is shown is Table 1.
 
 3.1 ssd.conf File
 
