@@ -173,11 +173,36 @@ When Shell script of ram-mount.sh is executed, ‘rd’ folder is created and 8G
   
 - MW_WIN7_AIO_FINAL_FF_DVD.iso’ File should be located in VSSIM/OS. 
 
-5. Error Settlement
+#### Error Settlement
 
-5.1 In case of libqt-mt.so.3 related error
+1. In case of libqt-mt.so.3 related error
 
-5.2 Failure to connect with SSD Monitor
+Install the library below
+
+    sudo apt-get install libqt3-mt
+
+2. Failure to connect with SSD Monitor
+
+Check port number and IP setting
+
+- Check port number of SSD Monitor and IP setting
+
+    Move to VSSIM/MONITOR/SSD_MONITOR_PM folder
+    vi form1.ui.h
+
+    Check port number and IP setting in 117th line
+    sock->connetToHost(“127.0.0.1”, 9999)
+
+- Check port number setting of SSD Log Manager
+
+    Move to VSSIM/SSD_MODULE folder
+    vi ssd_log_manager.c
+
+    Check port number in 76th line, and see if it it identical to the port number setting of SSD Monitor
+    serverAddr.sin_port = htons(9999);
+
+    ※ Port number that was set could be in use in other applications. Change the port number and try executing. (ex, 9990~9998) 
+
 
 
 Publication
