@@ -104,17 +104,15 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     Compile Method
 
-         $ make clean
-         $ make
+	$ cd VSSIM/MONITOR/SSD_MONITOR_PM/
+        $ make clean
+        $ make
 
 2. FTL Setting
 
     VSSIM is modularized to make it easy for the user to easily change FTL. One can change FTL using simple link/unlink script.
 
-    Location: There is link/unlink file inside the VSSIM/CONFIG/ftl-setting folder.
-
-    Compile Method 
-
+	$ cd VSSIM/CONFIG/ftl-setting/
         $ ./unlink_pm
         $ ./link_pm
 
@@ -126,17 +124,16 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     Example of an OS Image File
 
-        $ MW_WIN7_AIO_FINAL_FF_DVD.iso
-        $ ubuntu-10.04.4-desktop-i386.iso
+        MW_WIN7_AIO_FINAL_FF_DVD.iso
+        ubuntu-10.04.4-desktop-i386.iso
 
 4. QEMU Compile
 
     QEMU Compile should be done in prior to executing VSSIM. VSSIM operates in QEMU.
 
-    Location: VSSIM/QEMU
-
     Compile
 
+	$ cd VSSIM/QEMU/
         $ make clean
         $ ./configure
         $ make
@@ -145,24 +142,18 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     We recommend running on Ramdisk for quick execution of VSSIM. When VSSIM is executed on hard disk, the performance of simulator can fall greatly. Formation of Ramdisk uses Shell script that is included in VSSIM/RAMDISK folder, the contents of which are as follows.
 
+        $ cd VSSIM/RAMDISK/
         $ mkdir rd
         $ chmod 0755 rd
         $ sudo mount -t tmpfs -o size=8g tmpfs ./rd
 
     When Shell script of ram-mount.sh is executed, ‘rd’ folder is created and 8GByte sized Ramdisk is created as tmpfs filesystem. If you wish to alter the size of Ramdisk, you can change the part that is written as ‘size=8g’ in Shell script. (g refers to GByte.)
 
-    Location: VSSIM/RAMDISK/
-
-    Execution
-
         $ ./ram_mount.sh
 
 6. VSSIM Execution
 
-    Location: VSSIM/QEMU/x86_64-softmmu
-
-    Execution
-
+        $ cd VSSIM/QEMU/x86_64-softmmu
         $./run.sh
 
     Cautions: "run.sh"file is as follows
@@ -184,23 +175,21 @@ This section explains the entire process of actually compiling VSSIM and making 
 
 2. Failure to connect with SSD Monitor
 
-Check port number and IP setting
+    Check port number of SSD Monitor and IP setting
 
-- Check port number of SSD Monitor and IP setting
+        $ cd VSSIM/MONITOR/SSD_MONITOR_PM/
+        $ vi form1.ui.h
+        // Check port number and IP setting in 117th line
+        // sock->connetToHost(“127.0.0.1”, 9999)
 
-    Move to VSSIM/MONITOR/SSD_MONITOR_PM folder
-    vi form1.ui.h
+    Check port number setting of SSD Log Manager
 
-    Check port number and IP setting in 117th line
-    sock->connetToHost(“127.0.0.1”, 9999)
-
-- Check port number setting of SSD Log Manager
-
-    Move to VSSIM/SSD_MODULE folder
-    vi ssd_log_manager.c
+        $ cd /VSSIM/SSD_MODULE/
+        $ vi ssd_log_manager.c
 
     Check port number in 76th line, and see if it it identical to the port number setting of SSD Monitor
-    serverAddr.sin_port = htons(9999);
+
+        serverAddr.sin_port = htons(9999);
 
     ※ Port number that was set could be in use in other applications. Change the port number and try executing. (ex, 9990~9998) 
 
