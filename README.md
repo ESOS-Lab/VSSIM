@@ -104,8 +104,8 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     - Compile Method
 
-        $ make clean
-        $ make
+         $ make clean
+         $ make
 
 2. FTL Setting
 
