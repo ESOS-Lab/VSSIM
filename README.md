@@ -1,5 +1,8 @@
 VSSIM: Virtual machine based SSD SIMulator
 -----
+* Maintainer : Jinsoo Yoo (jedisty@hanyang.ac.kr)
+* Contributor : Joongwoo Hwang, Haesung Kim, Joohyun Kim 
+
 VSSIM is an SSD Simulator performed with full virtualized system based on QEMU. VSSIM operates on top of QEMU/KVM with software based SSD module as an IDE device. VSSIM runs in real-time and allows the user to measure both the host performance and SSD behavior under various design choices.
  By using running virtual machine as a simulation environment, VSSIM can process workload in realtime and preserve the system status after a session of experiment, in other words, VSSIM provides methods to module the actual behavior of the SSD. 
 
@@ -7,6 +10,11 @@ What is the merit?
 -----
 VSSIM can flexibly model the various hardware components, e.g. the number of channels, the number of ways, block size, page size, the number of planes per chip, program, erase, read latency of NAND cells, channel switch delay, and way switch delay. VSSIM can also facilitate the implementation of the SSD firmware algorithms. 
 
+Publication
+-----
+* Jinsoo Yoo, Youjip Won, Joongwoo Hwang, Sooyong Kang, Jongmoo Choi, Sungroh Yoon and Jaehyuk Cha, VSSIM: Virtual Machine based SSD Simulator In Proc. of Mass Storage Systems and Technologies (MSST), 2013 IEEE 29th Symposium on, Long Beach, California, USA, May 6-10, 2013
+
+* Joohyun Kim, Haesung Kim, Seongjin Lee, Youjip Won, FTL Design for TRIM Command In Proc. of Software Support for Portable Storage (IWSSPS), 2010 15th International Workshop on, Scottsdale, AZ, USA, October 28, 2010
 
 Architecture
 -----
@@ -194,9 +202,9 @@ Course Material
 -----
 VSSIM is designed to be used as an excellent experiment platform to study the various aspects of an SSD. We provide several labs to help the instructor lead the class. VSSIM is open source and you are welcome to share the lab materials which you have developed. Please send your lab to vssimadmin@hanyang.ac.kr. 
  
-Lab1.
+#### Lab1.
  
-    Configure 8 channel, 2 way SSD. Page size is 4 KByte. NAND Latency is set to 300 usec, 900 usec, and 2.5 msec for read, program and erase. Channel switch delay and way switch delay are 20 msec, and 80 msec, respectively. 
+Configure 8 channel, 2 way SSD. Page size is 4 KByte. NAND Latency is set to 300 usec, 900 usec, and 2.5 msec for read, program and erase. Channel switch delay and way switch delay are 20 msec, and 80 msec, respectively. 
 
  
     1. Install Linux operating system on SSD. Measure the time to install Linux OS.
@@ -205,12 +213,4 @@ Lab1.
     4. Configure 2 channel and 8 way SSD and repeat the experiments 1, 2, and 3 again.
     5. Configure 4 channel and 4 way SSD and repeat the experiments 1, 2, and 3 again.
     6. Discuss the effect the channel and way parallelism over SSD performance and its implication on host performance. 
-
-
-
-Publication
------
-* Jinsoo Yoo, Youjip Won, Joongwoo Hwang, Sooyong Kang, Jongmoo Choi, Sungroh Yoon and Jaehyuk Cha, VSSIM: Virtual Machine based SSD Simulator In Proc. of Mass Storage Systems and Technologies (MSST), 2013 IEEE 29th Symposium on, Long Beach, California, USA, May 6-10, 2013
-
-* Joohyun Kim, Haesung Kim, Seongjin Lee, Youjip Won, FTL Design for TRIM Command In Proc. of Software Support for Portable Storage (IWSSPS), 2010 15th International Workshop on, Scottsdale, AZ, USA, October 28, 2010
 
