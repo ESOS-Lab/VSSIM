@@ -111,67 +111,68 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     VSSIM is modularized to make it easy for the user to easily change FTL. One can change FTL using simple link/unlink script.
 
-    - Location: There is link/unlink file inside the VSSIM/CONFIG/ftl-setting folder.
+    Location: There is link/unlink file inside the VSSIM/CONFIG/ftl-setting folder.
 
-    - Compile Method 
+    Compile Method 
 
         $ ./unlink_pm
         $ ./link_pm
 
 3. OS Image File Preparation
 
-OS image file is needed to execute VSSIM
+    OS image file is needed to execute VSSIM
 
-- Location: Place an OS image file under VSSIM/OS folder. (VSSIM Code distribution version does not include an OS image.)
+    Location: Place an OS image file under VSSIM/OS folder. (VSSIM Code distribution version does not include an OS image.)
 
-- Example of an OS Image File
+    Example of an OS Image File
 
-    $ MW_WIN7_AIO_FINAL_FF_DVD.iso
-    $ ubuntu-10.04.4-desktop-i386.iso
+        $ MW_WIN7_AIO_FINAL_FF_DVD.iso
+        $ ubuntu-10.04.4-desktop-i386.iso
 
 4. QEMU Compile
 
-QEMU Compile should be done in prior to executing VSSIM. VSSIM operates in QEMU.
+    QEMU Compile should be done in prior to executing VSSIM. VSSIM operates in QEMU.
 
-- Location: VSSIM/QEMU
+    Location: VSSIM/QEMU
 
-- Compile
+    Compile
 
-    $ make clean
-    $ ./configure
-    $ make
+        $ make clean
+        $ ./configure
+        $ make
 
 5. Ramdisk Formation
 
-We We recommend running on Ramdisk for quick execution of VSSIM. When VSSIM is executed on hard disk, the performance of simulator can fall greatly. Formation of Ramdisk uses Shell script that is included in VSSIM/RAMDISK folder, the contents of which are as follows.
+    We recommend running on Ramdisk for quick execution of VSSIM. When VSSIM is executed on hard disk, the performance of simulator can fall greatly. Formation of Ramdisk uses Shell script that is included in VSSIM/RAMDISK folder, the contents of which are as follows.
 
-    $ mkdir rd
-    $ chmod 0755 rd
-    $ sudo mount -t tmpfs -o size=8g tmpfs ./rd
+        $ mkdir rd
+        $ chmod 0755 rd
+        $ sudo mount -t tmpfs -o size=8g tmpfs ./rd
 
-When Shell script of ram-mount.sh is executed, ‘rd’ folder is created and 8GByte sized Ramdisk is created as tmpfs filesystem. If you wish to alter the size of Ramdisk, you can change the part that is written as ‘size=8g’ in Shell script. (g refers to GByte.)
+    When Shell script of ram-mount.sh is executed, ‘rd’ folder is created and 8GByte sized Ramdisk is created as tmpfs filesystem. If you wish to alter the size of Ramdisk, you can change the part that is written as ‘size=8g’ in Shell script. (g refers to GByte.)
 
-- Location: VSSIM/RAMDISK/
+    Location: VSSIM/RAMDISK/
 
-- Execution
+    Execution
 
-    $ ./ram_mount.sh
+        $ ./ram_mount.sh
 
 6. VSSIM Execution
 
-- Location: VSSIM/QEMU/x86_64-softmmu
+    Location: VSSIM/QEMU/x86_64-softmmu
 
-- Execution
+    Execution
 
-    $./run.sh
+        $./run.sh
 
-- Cautions: "run.sh"file is as follows
+    Cautions: "run.sh"file is as follows
 
-    rm -rf data/*.dat
-    qemu-img create -f qcow /mnt/rd/ssd.img 16G
-    ./qemu-system-x86_64 -m 2048 -cpu core2duo -hda /mnt/rd/ssd.img -cdrom ../../OS/MW_WIN7_AIO_FINAL_FF_DVD.iso -usbdevice tablet
+        rm -rf data/*.dat
+        qemu-img create -f qcow /mnt/rd/ssd.img 16G
+        ./qemu-system-x86_64 -m 2048 -cpu core2duo -hda /mnt/rd/ssd.img -cdrom ../../OS/MW_WIN7_AIO_FINAL_FF_DVD.iso -usbdevice tablet
   
-- MW_WIN7_AIO_FINAL_FF_DVD.iso’ File should be located in VSSIM/OS. 
+    MW_WIN7_AIO_FINAL_FF_DVD.iso’ File should be located in VSSIM/OS. 
+
 
 #### Error Settlement
 
