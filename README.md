@@ -179,7 +179,7 @@ When Shell script of ram-mount.sh is executed, ‘rd’ folder is created and 8G
 
     Install the library below
 
-    sudo apt-get install libqt3-mt
+        sudo apt-get install libqt3-mt
 
 2. Failure to connect with SSD Monitor
 
