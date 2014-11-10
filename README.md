@@ -104,7 +104,7 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     Compile Method
 
-	$ cd VSSIM/MONITOR/SSD_MONITOR_PM/
+        $ cd VSSIM/MONITOR/SSD_MONITOR_PM/
         $ make clean
         $ make
 
@@ -112,7 +112,7 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     VSSIM is modularized to make it easy for the user to easily change FTL. One can change FTL using simple link/unlink script.
 
-	$ cd VSSIM/CONFIG/ftl-setting/
+        $ cd VSSIM/CONFIG/ftl-setting/
         $ ./unlink_pm
         $ ./link_pm
 
@@ -133,7 +133,7 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     Compile
 
-	$ cd VSSIM/QEMU/
+        $ cd VSSIM/QEMU/
         $ make clean
         $ ./configure
         $ make
