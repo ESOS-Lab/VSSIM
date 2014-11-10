@@ -102,8 +102,6 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     Location: Inside the VSSIM/MONITOR/SSD_MONITOR_PM folder, there is a GUI(Graphic User Interface) written in Qt3 to show VSSIM operation conditions.
 
-    Compile Method
-
         $ cd VSSIM/MONITOR/SSD_MONITOR_PM/
         $ make clean
         $ make
@@ -122,7 +120,7 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     Location: Place an OS image file under VSSIM/OS folder. (VSSIM Code distribution version does not include an OS image.)
 
-    Example of an OS Image File
+    Example of an OS Image File:
 
         MW_WIN7_AIO_FINAL_FF_DVD.iso
         ubuntu-10.04.4-desktop-i386.iso
@@ -130,8 +128,6 @@ This section explains the entire process of actually compiling VSSIM and making 
 4. QEMU Compile
 
     QEMU Compile should be done in prior to executing VSSIM. VSSIM operates in QEMU.
-
-    Compile
 
         $ cd VSSIM/QEMU/
         $ make clean
@@ -192,6 +188,23 @@ This section explains the entire process of actually compiling VSSIM and making 
         serverAddr.sin_port = htons(9999);
 
     ※ Port number that was set could be in use in other applications. Change the port number and try executing. (ex, 9990~9998) 
+
+
+Course Material
+-----
+VSSIM is designed to be used as an excellent experiment platform to study the various aspects of an SSD. We provide several labs to help the instructor lead the class. VSSIM is open source and you are welcome to share the lab materials which you have developed. Please send your lab to vssimadmin@hanyang.ac.kr. 
+ 
+Lab1.
+ 
+    Configure 8 channel, 2 way SSD. Page size is 4 KByte. NAND Latency is set to 300 usec, 900 usec, and 2.5 msec for read, program and erase. Channel switch delay and way switch delay are 20 msec, and 80 msec, respectively. 
+
+ 
+    1. Install Linux operating system on SSD. Measure the time to install Linux OS.
+    2. Draw the CDF of IO sizes generated during Linux installation.
+    3. Determine the number of write and read operations in installing Linux OS.
+    4. Configure 2 channel and 8 way SSD and repeat the experiments 1, 2, and 3 again.
+    5. Configure 4 channel and 4 way SSD and repeat the experiments 1, 2, and 3 again.
+    6. Discuss the effect the channel and way parallelism over SSD performance and its implication on host performance. 
 
 
 
