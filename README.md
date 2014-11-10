@@ -100,23 +100,23 @@ This section explains the entire process of actually compiling VSSIM and making 
 
 1. Monitor Compile
 
-- Location: Inside the VSSIM/MONITOR/SSD_MONITOR_PM folder, there is a GUI(Graphic User Interface) written in Qt3 to show VSSIM operation conditions.
+    - Location: Inside the VSSIM/MONITOR/SSD_MONITOR_PM folder, there is a GUI(Graphic User Interface) written in Qt3 to show VSSIM operation conditions.
 
-- Compile Method
+    - Compile Method
 
-    $ make clean
-    $ make
+        $ make clean
+        $ make
 
 2. FTL Setting
 
-VSSIM is modularized to make it easy for the user to easily change FTL. One can change FTL using simple link/unlink script.
+    VSSIM is modularized to make it easy for the user to easily change FTL. One can change FTL using simple link/unlink script.
 
-- Location: There is link/unlink file inside the VSSIM/CONFIG/ftl-setting folder.
+    - Location: There is link/unlink file inside the VSSIM/CONFIG/ftl-setting folder.
 
-- Compile Method 
+    - Compile Method 
 
-    $ ./unlink_pm
-    $ ./link_pm
+        $ ./unlink_pm
+        $ ./link_pm
 
 3. OS Image File Preparation
 
