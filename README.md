@@ -100,9 +100,9 @@ This section explains the entire process of actually compiling VSSIM and making 
 
 1. Monitor Compile
 
-    - Location: Inside the VSSIM/MONITOR/SSD_MONITOR_PM folder, there is a GUI(Graphic User Interface) written in Qt3 to show VSSIM operation conditions.
+    Location: Inside the VSSIM/MONITOR/SSD_MONITOR_PM folder, there is a GUI(Graphic User Interface) written in Qt3 to show VSSIM operation conditions.
 
-    - Compile Method
+    Compile Method
 
          $ make clean
          $ make
