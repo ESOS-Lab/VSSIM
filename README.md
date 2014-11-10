@@ -177,7 +177,7 @@ When Shell script of ram-mount.sh is executed, ‘rd’ folder is created and 8G
 
 1. In case of libqt-mt.so.3 related error
 
-Install the library below
+    Install the library below
 
     sudo apt-get install libqt3-mt
 
