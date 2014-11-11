@@ -40,7 +40,7 @@ void FTL_INIT(void)
 #ifdef FIRM_IO_BUFFER
 		INIT_IO_BUFFER();
 #endif
-#ifdef VSSIM_BENCH
+#ifdef MONITOR_ON
 		INIT_LOG_MANAGER();
 #endif
 		g_init = 1;
@@ -71,7 +71,8 @@ void FTL_TERM(void)
 	TERM_EMPTY_BLOCK_LIST();
 	TERM_VICTIM_BLOCK_LIST();
 	TERM_PERF_CHECKER();
-#ifdef VSSIM_BENCH
+
+#ifdef MONITOR_ON
 	TERM_LOG_MANAGER();
 #endif
 
