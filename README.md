@@ -204,7 +204,7 @@ This section explains the entire process of actually compiling VSSIM and making 
 
 Course Material
 -----
-VSSIM is designed to be used as an excellent experiment platform to study the various aspects of an SSD. We provide several labs to help the instructor lead the class. VSSIM is open source and you are welcome to share the lab materials which you have developed. Please send your lab to vssimadmin@hanyang.ac.kr. 
+VSSIM is designed to be used as an excellent experiment platform to study the various aspects of an SSD. We provide several labs to help the instructor lead the class. VSSIM is open source and you are welcome to share the lab materials which you have developed. 
  
 #### Lab1.
  
