@@ -60,6 +60,13 @@ int GET_NEW_PAGE(int mode, int mapping_index, int32_t* ppn)
 
 	curr_empty_block = GET_EMPTY_BLOCK(mode, mapping_index);
 
+	/* If the flash memory has no empty block,
+                Get empty block from the other flash memories */
+        if(mode == VICTIM_INCHIP && curr_empty_block == NULL){
+                /* Try again */
+                curr_empty_block = GET_EMPTY_BLOCK(VICTIM_OVERALL, mapping_index);
+        }
+
 	if(curr_empty_block == NULL){
 		printf("ERROR[%s] fail\n", __FUNCTION__);
 		return FAIL;

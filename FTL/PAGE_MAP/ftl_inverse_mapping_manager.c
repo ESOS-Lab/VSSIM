@@ -437,14 +437,24 @@ empty_block_entry* GET_EMPTY_BLOCK(int mode, int mapping_index)
 			curr_root_entry = (empty_block_root*)empty_block_list + mapping_index;
 			if(curr_root_entry->empty_block_nb == 0){
 
-				mapping_index++;
-				if(mapping_index % PLANES_PER_FLASH == 0){
-					mapping_index = mapping_index - (PLANES_PER_FLASH-1);
-				}
-				if(mapping_index == input_mapping_index){
-					printf("ERROR[%s] There is no empty block\n", __FUNCTION__);
-					return NULL;				
-				}
+				/* If the flash memory has multiple planes, move index */
+                                if(PLANES_PER_FLASH != 1){
+                                        mapping_index++;
+                                        if(mapping_index % PLANES_PER_FLASH == 0){
+                                                mapping_index = mapping_index - (PLANES_PER_FLASH-1);
+                                        }
+                                        if(mapping_index == input_mapping_index){
+                                                printf("ERROR[%s] There is no empty block\n",__FUNCTION__);
+                                                return NULL;
+                                        }
+                                }
+                                /* If there is no empty block in the flash memory, return fail */
+                                else{
+#ifdef FTL_DEBUG
+                                        printf("ERROR[%s]-INCHIP There is no empty block\n",__FUNCTION__);
+#endif
+                                        return NULL;
+                                }
 
 				continue;
 			}
