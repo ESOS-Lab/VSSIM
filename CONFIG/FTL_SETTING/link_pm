@@ -22,6 +22,8 @@ ln -s ../CONFIG/QEMU_MAKEFILE/Makefile_pm				../../QEMU/Makefile.target
 
 # SSD operation control header file "common.h"
 ln -s ../../FTL/COMMON/common.h						../../QEMU/hw/common.h
+ln -s ../../FTL/COMMON/ftl_perf_manager.h				../../QEMU/hw/ftl_perf_manager.h
+ln -s ../../FTL/COMMON/ftl_perf_manager.c				../../QEMU/hw/ftl_perf_manager.c
 ln -s ../../SSD_MODULE/ssd_util.h					../../QEMU/hw/ssd_util.h
 
 # HEADER FILE
@@ -31,7 +33,6 @@ ln -s ../../FTL/PAGE_MAP/ftl_mapping_manager.h				../../QEMU/hw/ftl_mapping_mana
 ln -s ../../FTL/PAGE_MAP/ftl_inverse_mapping_manager.h			../../QEMU/hw/ftl_inverse_mapping_manager.h
 ln -s ../../FTL/PAGE_MAP/ftl_gc_manager.h				../../QEMU/hw/ftl_gc_manager.h
 ln -s ../../FTL/PAGE_MAP/ftl_cache.h					../../QEMU/hw/ftl_cache.h
-ln -s ../../FTL/PERF_MODULE/ftl_perf_manager.h				../../QEMU/hw/ftl_perf_manager.h
 
 ln -s ../../SSD_MODULE/ssd_trim_manager.h				../../QEMU/hw/ssd_trim_manager.h
 ln -s ../../SSD_MODULE/ssd_io_manager.h					../../QEMU/hw/ssd_io_manager.h
@@ -46,7 +47,6 @@ ln -s ../../FTL/PAGE_MAP/ftl_mapping_manager.c				../../QEMU/hw/ftl_mapping_mana
 ln -s ../../FTL/PAGE_MAP/ftl_inverse_mapping_manager.c			../../QEMU/hw/ftl_inverse_mapping_manager.c
 ln -s ../../FTL/PAGE_MAP/ftl_gc_manager.c				../../QEMU/hw/ftl_gc_manager.c
 ln -s ../../FTL/PAGE_MAP/ftl_cache.c					../../QEMU/hw/ftl_cache.c
-ln -s ../../FTL/PERF_MODULE/ftl_perf_manager.c				../../QEMU/hw/ftl_perf_manager.c
 
 ln -s ../../SSD_MODULE/ssd_trim_manager.c				../../QEMU/hw/ssd_trim_manager.c
 ln -s ../../SSD_MODULE/ssd_io_manager.c					../../QEMU/hw/ssd_io_manager.c
