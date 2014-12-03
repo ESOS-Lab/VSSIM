@@ -1,8 +1,11 @@
-## VSSIM source code unlink script
-## Copyright(c)2014
-## Hanyang University, Seoul, Korea
-## Embedded Software Systems Laboratory. All right reserved
+# File: unlink_pm
+# Data: 2014. 12. 03.
+# Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
+# Copyright(c)2014
+# Hanyang University, Seoul, Korea
+# Embedded Software Systems Laboratory. All right reserved
 
+## VSSIM source code unlink script
 #!/bin/bash
 # This file used for unlinking : QEMU <-- // --> SSD FTL SOURCE
 # For "SSD PAGE MAPPING FTL"

@@ -1,7 +1,11 @@
+# File: Makefile
+# Data: 2014. 12. 03.
+# Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
+# Copyright(c)2014
+# Hanyang University, Seoul, Korea
+# Embedded Software Systems Laboratory. All right reserved
+
 ## SSD Monitor Makefile
-## Copyright(c)2014
-## Hanyang University, Seoul, Korea
-## Embedded Software Systems Laboratory. All right reserved
 
 #############################################################################
 # Makefile for building: ssd_monitor_p

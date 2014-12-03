@@ -1,4 +1,6 @@
-// ssd_log_manager.c
+// File: ssd_log_manager.c
+// Data: 2014. 12. 03.
+// Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
 // Copyright(c)2014
 // Hanyang University, Seoul, Korea
 // Embedded Software Systems Laboratory. All right reserved

@@ -1,7 +1,9 @@
-// Copyright(c)2013 
-//
+// File: ftl.h
+// Data: 2014. 12. 03.
+// Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
+// Copyright(c)2014
 // Hanyang University, Seoul, Korea
-// Embedded Software Systems Lab. All right reserved
+// Embedded Software Systems Laboratory. All right reserved
 
 #ifndef _FTL_H_
 #define _FTL_H_

@@ -1,8 +1,11 @@
-## VSSIM source code link script for Page mapping FTL
-## Copyright(c)2014
-## Hanyang University, Seoul, Korea
-## Embedded Software Systems Laboratory. All right reserved
+# File: link_pm
+# Data: 2014. 12. 03.
+# Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
+# Copyright(c)2014
+# Hanyang University, Seoul, Korea
+# Embedded Software Systems Laboratory. All right reserved
 
+## VSSIM source code link script for Page mapping FTL
 #!/bin/bash
 # This file used for linking : QEMU <-> SSD FTL SOURCE
 # For "SSD PAGE MAPPING FTL"

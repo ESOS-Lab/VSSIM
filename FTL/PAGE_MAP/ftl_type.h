@@ -1,4 +1,6 @@
-// ftl_type.h
+// File: ftl_type.h
+// Data: 2014. 12. 03.
+// Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
 // Copyright(c)2014
 // Hanyang University, Seoul, Korea
 // Embedded Software Systems Laboratory. All right reserved
