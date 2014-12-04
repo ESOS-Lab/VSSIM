@@ -1,5 +1,5 @@
 // File: ssd_util.h
-// Data: 2014. 12. 03.
+// Date: 2014. 12. 03.
 // Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
 // Copyright(c)2014
 // Hanyang University, Seoul, Korea
