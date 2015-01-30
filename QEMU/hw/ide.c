@@ -41,7 +41,7 @@
 #endif
 
 /* 140728 -  Add by Jinsoo*/
-#define F2FS_TEST
+//#define F2FS_TEST
 
 /* debug IDE devices */
 //#define DEBUG_IDE
