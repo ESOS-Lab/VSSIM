@@ -470,6 +470,7 @@ obj-y += virtio-blk.o virtio-balloon.o virtio-net.o virtio-console.o
 obj-$(CONFIG_KVM) += kvm.o kvm-all.o
 
 LIBS+=-lz
+LIBS+=-lrt
 ifdef CONFIG_ALSA
 LIBS += -lasound
 endif
