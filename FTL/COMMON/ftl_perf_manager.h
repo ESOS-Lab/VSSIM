@@ -8,6 +8,15 @@
 #ifndef _PERF_MANAGER_H_
 #define _PERF_MANAGER_H_
 
+typedef struct nand_io_info
+{
+	int offset;
+	int type;
+	int io_page_nb;
+	int io_seq_nb;
+}nand_io_info;
+
+
 /* IO Latency */
 typedef struct io_request
 {
@@ -51,6 +60,9 @@ int64_t UPDATE_IO_REQUEST(int request_nb, int offset, int64_t time, int type);
 void INCREASE_IO_REQUEST_SEQ_NB(void);
 io_request* LOOKUP_IO_REQUEST(int request_nb, int type);
 int64_t CALC_IO_LATENCY(io_request* request);
+
+nand_io_info* CREATE_NAND_IO_INFO(int offset, int type, int io_page_nb, int io_seq_nb);
+
 void PRINT_IO_REQUEST(io_request* request);
 void PRINT_ALL_IO_REQUEST(void);
 

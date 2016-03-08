@@ -164,6 +164,8 @@ int _FTL_READ(int32_t sector_nb, unsigned int length)
 	int read_page_nb = 0;
 	int io_page_nb;
 
+	nand_io_info* n_io_info = NULL;
+
 #ifdef FIRM_IO_BUFFER
 	INCREASE_RB_FTL_POINTER(length);
 #endif
@@ -223,7 +225,10 @@ int _FTL_READ(int32_t sector_nb, unsigned int length)
 #endif
 		}
 
-		ret = SSD_PAGE_READ(CALC_FLASH(ppn), CALC_BLOCK(ppn), CALC_PAGE(ppn), read_page_nb, READ, io_page_nb);
+		/* Read data from NAND page */
+                n_io_info = CREATE_NAND_IO_INFO(read_page_nb, READ, io_page_nb, io_request_seq_nb);
+
+		ret = SSD_PAGE_READ(CALC_FLASH(ppn), CALC_BLOCK(ppn), CALC_PAGE(ppn), n_io_info);
 
 #ifdef FTL_DEBUG
 		if(ret == SUCCESS){
@@ -292,6 +297,7 @@ int _FTL_WRITE(int32_t sector_nb, unsigned int length)
 
 	unsigned int ret = FAIL;
 	int write_page_nb=0;
+	nand_io_info* n_io_info = NULL;
 
 	while(remain > 0){
 
@@ -321,14 +327,16 @@ int _FTL_WRITE(int32_t sector_nb, unsigned int length)
 		lpn = lba / (int32_t)SECTORS_PER_PAGE;
 		old_ppn = GET_MAPPING_INFO(lpn);
 
+		n_io_info = CREATE_NAND_IO_INFO(write_page_nb, WRITE, io_page_nb, io_request_seq_nb);
+
 		if((left_skip || right_skip) && (old_ppn != -1)){
 			ret = SSD_PAGE_PARTIAL_WRITE(
 				CALC_FLASH(old_ppn), CALC_BLOCK(old_ppn), CALC_PAGE(old_ppn),
 				CALC_FLASH(new_ppn), CALC_BLOCK(new_ppn), CALC_PAGE(new_ppn),
-				write_page_nb, WRITE, io_page_nb);
+				n_io_info);
 		}
 		else{
-			ret = SSD_PAGE_WRITE(CALC_FLASH(new_ppn), CALC_BLOCK(new_ppn), CALC_PAGE(new_ppn), write_page_nb, WRITE, io_page_nb);
+			ret = SSD_PAGE_WRITE(CALC_FLASH(new_ppn), CALC_BLOCK(new_ppn), CALC_PAGE(new_ppn), n_io_info);
 		}
 		
 		write_page_nb++;

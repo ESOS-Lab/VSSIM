@@ -1,5 +1,5 @@
 // File: ssd_io_manager.c
-// Date: 2014. 12. 03.
+// Date: 2014. 12. 11.
 // Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
 // Copyright(c)2014
 // Hanyang University, Seoul, Korea
@@ -29,8 +29,8 @@ int64_t init_diff_reg=0;
 int64_t io_alloc_overhead=0;
 int64_t io_update_overhead=0;
 
-char ssd_version[4] = "1.0";
-char ssd_date[9] = "13.04.11";
+char ssd_version[4] = "1.1";
+char ssd_date[9] = "16.03.04";
 
 
 int64_t get_usec(void)
@@ -100,7 +100,7 @@ int SSD_IO_INIT(void){
 	return 0;
 }
 
-int SSD_PAGE_WRITE(unsigned int flash_nb, unsigned int block_nb, unsigned int page_nb, int offset, int type, int io_page_nb)
+int SSD_PAGE_WRITE(unsigned int flash_nb, unsigned int block_nb, unsigned int page_nb, nand_io_info* n_io_info)
 {
 	int channel, reg;
 	int ret = FAIL;
@@ -126,15 +126,19 @@ int SSD_PAGE_WRITE(unsigned int flash_nb, unsigned int block_nb, unsigned int pa
 	}
 
 	/* Record Time Stamp */
-	SSD_CH_RECORD(channel, WRITE, offset, delay_ret);
-	SSD_REG_RECORD(reg, WRITE, type, offset, channel);
+	SSD_CH_RECORD(channel, WRITE, delay_ret, n_io_info);
+	SSD_REG_RECORD(reg, WRITE, channel, n_io_info);
 	SSD_CELL_RECORD(reg, WRITE);
 
 #ifdef O_DIRECT_VSSIM
-	if(offset == io_page_nb-1){
+	if(offset == (n_io_info->io_page_nb-1)){
 		SSD_REMAIN_IO_DELAY(reg);
 	}
 #endif
+
+	if(n_io_info != NULL){
+		free(n_io_info);
+	}
 
 //	printf("WRITE reg %d\tch %d\toff %d\n", reg, channel, offset);
 //	SSD_PRINT_STAMP();
@@ -142,7 +146,9 @@ int SSD_PAGE_WRITE(unsigned int flash_nb, unsigned int block_nb, unsigned int pa
 	return SUCCESS;
 }
 
-int SSD_PAGE_PARTIAL_WRITE(unsigned int old_flash_nb, unsigned int old_block_nb, unsigned int old_page_nb, unsigned int new_flash_nb, unsigned int new_block_nb, unsigned int new_page_nb, int offset, int type, int io_page_nb)
+int SSD_PAGE_PARTIAL_WRITE(unsigned int old_flash_nb, unsigned int old_block_nb, \
+	unsigned int old_page_nb, unsigned int new_flash_nb, unsigned int new_block_nb, \
+	unsigned int new_page_nb, nand_io_info* n_io_info)
 {
 	int channel, reg;
 	int ret = FAIL;
@@ -170,8 +176,8 @@ int SSD_PAGE_PARTIAL_WRITE(unsigned int old_flash_nb, unsigned int old_block_nb,
 	}
 
 	/* Record Time Stamp */
-	SSD_CH_RECORD(channel, READ, offset, delay_ret);
-	SSD_REG_RECORD(reg, READ, type, offset, channel);
+	SSD_CH_RECORD(channel, READ, delay_ret, n_io_info);
+	SSD_REG_RECORD(reg, READ, channel, n_io_info);
 	SSD_CELL_RECORD(reg, READ);
 
 	SSD_REMAIN_IO_DELAY(reg);
@@ -198,20 +204,24 @@ int SSD_PAGE_PARTIAL_WRITE(unsigned int old_flash_nb, unsigned int old_block_nb,
 	}
 
 	/* Record Time Stamp */
-	SSD_CH_RECORD(channel, WRITE, offset, delay_ret);
-	SSD_REG_RECORD(reg, WRITE, type, offset, channel);
+	SSD_CH_RECORD(channel, WRITE, delay_ret, n_io_info);
+	SSD_REG_RECORD(reg, WRITE, channel, n_io_info);
 	SSD_CELL_RECORD(reg, WRITE);
 
 #ifdef O_DIRECT_VSSIM
-	if(offset == io_page_nb-1){
+	if(offset == (n_io_info->io_page_nb-1)){
 		SSD_REMAIN_IO_DELAY(reg);
 	}
 #endif
 
+	if(n_io_info != NULL){
+		free(n_io_info);
+	}
+
 	return SUCCESS;	
 }
 
-int SSD_PAGE_READ(unsigned int flash_nb, unsigned int block_nb, unsigned int page_nb, int offset, int type, int io_page_nb)
+int SSD_PAGE_READ(unsigned int flash_nb, unsigned int block_nb, unsigned int page_nb, nand_io_info* n_io_info)
 {
 	int channel, reg;
 	int delay_ret;
@@ -232,18 +242,23 @@ int SSD_PAGE_READ(unsigned int flash_nb, unsigned int block_nb, unsigned int pag
 	}
 
 	/* Record Time Stamp */
-	SSD_CH_RECORD(channel, READ, offset, delay_ret);
+	SSD_CH_RECORD(channel, READ, delay_ret, n_io_info);
 	SSD_CELL_RECORD(reg, READ);
-	SSD_REG_RECORD(reg, READ, type, offset, channel);
+	SSD_REG_RECORD(reg, READ, channel, n_io_info);
 
 //	printf("READ reg %d\tch %d\toff %d\n", reg, channel, offset);
 //	SSD_PRINT_STAMP();
 
 #ifdef O_DIRECT_VSSIM
-	if(offset == io_page_nb - 1){
+	if(offset == (n_io_info->io_page_nb - 1)){
 		SSD_REMAIN_IO_DELAY(reg);
 	}
 #endif
+
+	if(n_io_info != NULL){
+		free(n_io_info);
+	}
+
 	return SUCCESS;
 }
 
@@ -264,7 +279,7 @@ int SSD_BLOCK_ERASE(unsigned int flash_nb, unsigned int block_nb)
 	}
 
        	/* Record Time Stamp */
-	SSD_REG_RECORD(reg, ERASE, ERASE, -1, channel);
+	SSD_REG_RECORD(reg, ERASE, channel, NULL);
 	SSD_CELL_RECORD(reg, ERASE);
 
 	return SUCCESS;
@@ -277,7 +292,8 @@ int SSD_FLASH_ACCESS(unsigned int flash_nb, int reg)
 	int ret = 0;
 
 	for(i=0;i<PLANES_PER_FLASH;i++){
-		if(r_num != reg && access_nb[r_num][0] == io_request_seq_nb){
+//		if(r_num != reg && access_nb[r_num][0] == io_request_seq_nb){
+		if(access_nb[r_num][0] == -1){
 			/* That's OK */
 		}
 		else{
@@ -330,10 +346,11 @@ int SSD_CH_ENABLE(int channel)
 	return SUCCESS;
 }
 
-int SSD_CH_RECORD(int channel, int cmd, int offset, int ret)
+int SSD_CH_RECORD(int channel, int cmd, int ret, nand_io_info* n_io_info)
 {
 	old_channel_nb = channel;
 	old_channel_cmd = cmd;
+	int offset = n_io_info->offset;
 
 	if(cmd == READ && offset != 0 && ret == 0){
 		old_channel_time += CHANNEL_SWITCH_DELAY_R;
@@ -348,8 +365,18 @@ int SSD_CH_RECORD(int channel, int cmd, int offset, int ret)
 	return SUCCESS;
 }
 
-int SSD_REG_RECORD(int reg, int cmd, int type, int offset, int channel)
+int SSD_REG_RECORD(int reg, int cmd, int channel, nand_io_info* n_io_info)
 {
+	int type = -1;
+	int offset = -1;
+	int io_seq_nb = -1;
+
+	if(n_io_info != NULL){
+		type = n_io_info->type;
+		offset = n_io_info->offset;
+		io_seq_nb = n_io_info->io_seq_nb;
+	}
+
 	reg_io_cmd[reg] = cmd;
 	reg_io_type[reg] = type;
 
@@ -359,9 +386,9 @@ int SSD_REG_RECORD(int reg, int cmd, int type, int offset, int channel)
 
 		/* Update SATA request Info */
 		if(type == WRITE || type == SEQ_WRITE || type == RAN_WRITE || type == RAN_COLD_WRITE || type == RAN_HOT_WRITE){
-			access_nb[reg][0] = io_request_seq_nb;
+			access_nb[reg][0] = io_seq_nb;
 			access_nb[reg][1] = offset;
-			io_update_overhead = UPDATE_IO_REQUEST(io_request_seq_nb, offset, old_channel_time, UPDATE_START_TIME);
+			io_update_overhead = UPDATE_IO_REQUEST(io_seq_nb, offset, old_channel_time, UPDATE_START_TIME);
 			SSD_UPDATE_IO_OVERHEAD(reg, io_update_overhead);
 		}
 		else{
@@ -374,9 +401,9 @@ int SSD_REG_RECORD(int reg, int cmd, int type, int offset, int channel)
 
 		/* Update SATA request Info */
 		if(type == READ){
-			access_nb[reg][0] = io_request_seq_nb;
+			access_nb[reg][0] = io_seq_nb;
 			access_nb[reg][1] = offset;
-			io_update_overhead = UPDATE_IO_REQUEST(io_request_seq_nb, offset, old_channel_time, UPDATE_START_TIME);
+			io_update_overhead = UPDATE_IO_REQUEST(io_seq_nb, offset, old_channel_time, UPDATE_START_TIME);
 			SSD_UPDATE_IO_OVERHEAD(reg, io_update_overhead);
 		}
 		else{

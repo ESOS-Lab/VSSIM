@@ -1,5 +1,5 @@
 // File: ssd_io_manager.h
-// Date: 2014. 12. 03.
+// Date: 2014. 12. 11.
 // Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
 // Copyright(c)2014
 // Hanyang University, Seoul, Korea
@@ -23,10 +23,13 @@ int64_t get_usec(void);
 int SSD_IO_INIT(void);
 
 /* GET IO from FTL */
-int SSD_PAGE_READ(unsigned int flash_nb, unsigned int block_nb, unsigned int page_nb, int offset, int type, int io_page_nb);
-int SSD_PAGE_WRITE(unsigned int flash_nb, unsigned int block_nb, unsigned int page_nb, int offset, int type, int io_page_nb);
+int SSD_PAGE_READ(unsigned int flash_nb, unsigned int block_nb, unsigned int page_nb, nand_io_info* n_io_info);
+int SSD_PAGE_WRITE(unsigned int flash_nb, unsigned int block_nb, unsigned int page_nb, nand_io_info* n_io_info);
 int SSD_BLOCK_ERASE(unsigned int flash_nb, unsigned int block_nb);
-int SSD_PAGE_PARTIAL_WRITE(unsigned int old_flash_nb, unsigned int old_block_nb, unsigned int old_page_nb, unsigned new_flash_nb, unsigned int new_block_nb, unsigned int new_page_nb, int offset, int type, int io_page_nb);
+int SSD_PAGE_PARTIAL_WRITE(unsigned int old_flash_nb, unsigned int old_block_nb, \
+	unsigned int old_page_nb, unsigned new_flash_nb, \
+	unsigned int new_block_nb, unsigned int new_page_nb, \
+	nand_io_info* n_io_info);
 
 /* Channel Access Delay */
 int SSD_CH_ENABLE(int channel);
@@ -50,8 +53,8 @@ int SSD_CELL_READ_DELAY(int reg);
 int SSD_BLOCK_ERASE_DELAY(int reg);
 
 /* Mark Time Stamp */
-int SSD_CH_RECORD(int channel, int cmd, int offset, int ret);
-int SSD_REG_RECORD(int reg, int cmd, int type, int offset, int channel);
+int SSD_CH_RECORD(int channel, int cmd, int ret, nand_io_info* n_io_info);
+int SSD_REG_RECORD(int reg, int cmd, int channel, nand_io_info* n_io_info);
 int SSD_CELL_RECORD(int reg, int cmd);
 
 /* Check Read Operation in the Same Channel  */

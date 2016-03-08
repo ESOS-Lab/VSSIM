@@ -805,6 +805,22 @@ int64_t CALC_IO_LATENCY(io_request* request)
 	return latency;
 }
 
+nand_io_info* CREATE_NAND_IO_INFO(int offset, int type, int io_page_nb, int io_seq_nb)
+{
+	nand_io_info* n_io_info = (nand_io_info*)calloc(1, sizeof(nand_io_info));
+	if(n_io_info == NULL){
+		printf("ERROR[%s] Alloc memory fail. \n", __FUNCTION__);
+		return NULL;
+	}
+
+	n_io_info->offset = offset;
+	n_io_info->type = type;
+	n_io_info->io_page_nb = io_page_nb;
+	n_io_info->io_seq_nb = io_seq_nb;
+
+	return n_io_info;
+}
+
 void PRINT_IO_REQUEST(io_request* request)
 {
 	int i;
