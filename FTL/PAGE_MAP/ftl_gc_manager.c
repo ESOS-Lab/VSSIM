@@ -61,6 +61,7 @@ int GARBAGE_COLLECTION(void)
 	char* valid_array;
 	int copy_page_nb = 0;
 
+	nand_io_info* n_io_info = NULL;
 	block_state_entry* b_s_entry;
 
 	ret = SELECT_VICTIM_BLOCK(&victim_phy_flash_nb, &victim_phy_block_nb);
@@ -88,8 +89,15 @@ int GARBAGE_COLLECTION(void)
 				printf("ERROR[%s] Get new page fail\n", __FUNCTION__);
 				return FAIL;
 			}
-			SSD_PAGE_READ(victim_phy_flash_nb, victim_phy_block_nb, i, i, GC_READ, -1);
-			SSD_PAGE_WRITE(CALC_FLASH(new_ppn), CALC_BLOCK(new_ppn), CALC_PAGE(new_ppn), i, GC_WRITE, -1);
+
+		
+			/* Read a Valid Page from the Victim NAND Block */
+			n_io_info = CREATE_NAND_IO_INFO(i, GC_READ, -1, io_request_seq_nb);
+			SSD_PAGE_READ(victim_phy_flash_nb, victim_phy_block_nb, i, n_io_info);
+
+			/* Write the Valid Page*/
+			n_io_info = CREATE_NAND_IO_INFO(i, GC_WRITE, -1, io_request_seq_nb);
+			SSD_PAGE_WRITE(CALC_FLASH(new_ppn), CALC_BLOCK(new_ppn), CALC_PAGE(new_ppn), n_io_info);
 
 			old_ppn = victim_phy_flash_nb*PAGES_PER_FLASH + victim_phy_block_nb*PAGE_NB + i;
 
