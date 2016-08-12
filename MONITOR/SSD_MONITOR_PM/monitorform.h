@@ -1,0 +1,64 @@
+/*
+ * File: monitorform.h
+ * Date: 2016. 8. 8.
+ * Author: Yongseok Jin (mnm102211@gmail.com)
+ * Copyright(c)2016
+ * Hanyang University, Seoul, Korea
+ * Embedded Software Systems Laboratory, All right reserved
+ */
+
+#ifndef MONITORFORM_H
+#define MONITORFORM_H
+
+#include <QDialog>
+#include <QTimer>
+#include <QTcpSocket>
+
+namespace Ui {
+class MonitorForm;
+}
+
+class MonitorForm : public QDialog
+{
+    Q_OBJECT
+
+public slots:
+    void onTimer();
+    void onReceive();
+
+public:
+    explicit MonitorForm(QWidget *parent = 0);
+    ~MonitorForm();
+    void init_variables();
+
+private slots:
+    void on_btnReset_clicked();
+    void on_btnSave_clicked();
+
+private:
+    Ui::MonitorForm *ui;
+    QTcpSocket *socket;
+    QTimer *timer;
+
+    /* variables */
+    long long int time;
+    long long int *access_time_reg_mon;
+    int *access_type_reg_mon;
+    int CELL_PROGRAM_DELAY;
+    int powCount;
+
+    long int gcCount;
+    int gcStarted;
+    int gcExchange, gcSector;
+    int randMergeCount, seqMergeCount;
+    long int overwriteCount;
+
+    long int writeCount, readCount;
+    long int writeSectorCount, readSectorCount;
+    int trimEffect, trimCount;
+    long int writeAmpCount, writtenPageCount;
+
+    double readTime, writeTime;
+};
+
+#endif // MONITORFORM_H

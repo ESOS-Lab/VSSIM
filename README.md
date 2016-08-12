@@ -29,8 +29,8 @@ User Guide
 #### Settings
 
 The setting was recorded in a Linux environment as follows.
-- Linux OS: Ubuntu 10.04
-- Kernel Version: 2.6.32
+- Linux OS: Ubuntu 14.04
+- Kernel Version: 3.13.0-34-generic
 
 1. VSSIM Code Download
 Download the latest version from github
@@ -44,9 +44,9 @@ Download the latest version from github
     $ sudo apt-get install qemu
     $ sudo apt-get install qemu-kvm
 
-- Qt3 Installation
+- Qt5 Installation
 
-    $ sudo apt-get install qt3-dev-tools
+    $ sudo apt-get install qt5-default qttools5-dev-tools
 
 - Resolving Library Dependency
 
@@ -115,7 +115,7 @@ This section explains the entire process of actually compiling VSSIM and making 
     Location: Inside the VSSIM/MONITOR/SSD_MONITOR_PM folder, there is a GUI(Graphic User Interface) written in Qt3 to show VSSIM operation conditions.
 
         $ cd VSSIM/MONITOR/SSD_MONITOR_PM/
-        $ make clean
+        $ qmake
         $ make
 
 2. FTL Setting
@@ -175,20 +175,14 @@ This section explains the entire process of actually compiling VSSIM and making 
 
 #### Error Settlement
 
-1. In case of libqt-mt.so.3 related error
-
-    Install the library below
-
-        sudo apt-get install libqt3-mt
-
-2. Failure to connect with SSD Monitor
+1. Failure to connect with SSD Monitor
 
     Check port number of SSD Monitor and IP setting
 
         $ cd VSSIM/MONITOR/SSD_MONITOR_PM/
-        $ vi form1.ui.h
-        // Check port number and IP setting in 117th line
-        // sock->connetToHost(“127.0.0.1”, 9999)
+        $ vi monitorform.cpp
+        // Check port number and IP setting in 34th line
+        // socket->connetToHost(“127.0.0.1”, 9995)
 
     Check port number setting of SSD Log Manager
 
@@ -197,7 +191,7 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     Check port number in 76th line, and see if it it identical to the port number setting of SSD Monitor
 
-        serverAddr.sin_port = htons(9999);
+        serverAddr.sin_port = htons(9995);
 
     ※ Port number that was set could be in use in other applications. Change the port number and try executing. (ex, 9990~9998) 
 

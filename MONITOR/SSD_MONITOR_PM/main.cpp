@@ -1,18 +1,20 @@
-// File: main.cpp
-// Date: 2014. 12. 03.
-// Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
-// Copyright(c)2014
-// Hanyang University, Seoul, Korea
-// Embedded Software Systems Laboratory. All right reserved
+/*
+ * File: main.cpp
+ * Date: 2016. 8. 8.
+ * Author: Yongseok Jin (mnm102211@gmail.com)
+ * Copyright(c)2016
+ * Hanyang University, Seoul, Korea
+ * Embedded Software Systems Laboratory, All right reserved
+ */
 
-#include <qapplication.h>
-#include "form1.h"
+#include "monitorform.h"
+#include <QApplication>
 
-int main( int argc, char ** argv )
+int main(int argc, char *argv[])
 {
-    QApplication a( argc, argv );
-    Form1 w;
+    QApplication a(argc, argv);
+    MonitorForm w;
     w.show();
-    a.connect( &a, SIGNAL( lastWindowClosed() ), &a, SLOT( quit() ) );
+
     return a.exec();
 }
