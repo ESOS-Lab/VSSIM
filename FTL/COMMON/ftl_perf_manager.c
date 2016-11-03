@@ -105,9 +105,6 @@ FILE* fp_perf2_w;
 FILE* fp_perf3_up;
 FILE* fp_perf3_al;
 #endif
-#ifdef PERF_DEBUG5
-FILE* fp_perf5_w;
-#endif
 
 void INIT_PERF_CHECKER(void){
 	
@@ -225,10 +222,6 @@ void INIT_PERF_CHECKER(void){
 	fp_perf3_al = fopen("./data/p_perf3_al.txt","a");
 	fp_perf3_up = fopen("./data/p_perf3_up.txt","a");
 #endif
-#ifdef PERF_DEBUG5
-	fp_perf5_w = fopen("./data/p_perf5_w.txt","a");
-#endif
-
 }
 
 void TERM_PERF_CHECKER(void){
@@ -267,9 +260,6 @@ void TERM_PERF_CHECKER(void){
 	printf("Total Ran Merge Write 		%lf\n", total_ran_merge_write_delay);
 	printf("Total Ran Cold Merge Write	%lf\n", total_ran_cold_merge_write_delay);
 	printf("Total Ran Hot Merge Write 	%lf\n", total_ran_hot_merge_write_delay);
-#endif
-#ifdef PERF_DEBUG5
-	fclose(fp_perf5_w);
 #endif
 }
 
@@ -759,7 +749,7 @@ int64_t UPDATE_IO_REQUEST(int request_nb, int offset, int64_t time, int type)
 
 	io_request* curr_request = LOOKUP_IO_REQUEST(request_nb, type);
 	if(curr_request == NULL){
-		printf("ERROR[UPDATE_IO_REQUEST] No such io request, nb %d\n", request_nb);
+		printf("ERROR[%s] No such io request, nb: %d, type: %d\n",__FUNCTION__, request_nb, type);
 		return 0;
 	}
 
@@ -810,7 +800,7 @@ io_request* LOOKUP_IO_REQUEST(int request_nb, int type)
 		total_request = io_request_nb;
 	}
 	else{
-		printf("ERROR[LOOKUP_IO_REQUEST] There is no request\n");
+		printf("ERROR[%s] There is no request. total_request:%d\n", __FUNCTION__, io_request_nb);
 		return NULL;
 	}
 
@@ -903,20 +893,6 @@ int64_t CALC_IO_LATENCY(io_request* request)
 		}
 	}
 
-#ifdef PERF_DEBUG5
-	if(latency >= 1000000){
-		if(type == READ){
-			fprintf(fp_perf5_w, "READ latency: %ld\tsize: %d\n", latency, size);
-		}
-		else if(type == WRITE){
-			fprintf(fp_perf5_w, "WRITE latency:%ld\tsize: %d\n", latency, size);
-		}
-		fprintf(fp_perf5_w, "\t start: %ld\tend: %ld\n", min_start_time, max_end_time);
-		for(i=0; i<size; i++){
-			fprintf(fp_perf5_w, "\t%d\t%ld\t%ld\n",i, start_time_arr[i], end_time_arr[i]);
-		}
-	}
-#endif
 	return latency;
 }
 
