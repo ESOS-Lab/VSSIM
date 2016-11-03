@@ -78,6 +78,16 @@ double write_latency_count;
 double avg_read_latency;
 double avg_write_latency;
 
+double total_read_latency;
+double total_write_latency;
+
+int64_t* arr_read_latency;
+int64_t* arr_write_latency;
+int idx_read_latency;
+int idx_write_latency;
+int arr_read_full;
+int arr_write_full;
+
 /* SSD Util */
 double ssd_util;
 int64_t written_page_nb;
@@ -95,8 +105,13 @@ FILE* fp_perf2_w;
 FILE* fp_perf3_up;
 FILE* fp_perf3_al;
 #endif
+#ifdef PERF_DEBUG5
+FILE* fp_perf5_w;
+#endif
 
 void INIT_PERF_CHECKER(void){
+	
+	int i;
 
 	/* Average IO Time */
 	avg_write_delay = 0;
@@ -168,8 +183,36 @@ void INIT_PERF_CHECKER(void){
 	avg_read_latency = 0;
 	avg_write_latency = 0;
 
+	total_read_latency = 0;
+	total_write_latency = 0;
+
 	ssd_util = 0;
-	written_page_nb = 0;
+
+	/* Alloc latency array */
+	arr_read_latency = (int64_t*)calloc(LATENCY_WINDOW, sizeof(int64_t));
+	arr_write_latency = (int64_t*)calloc(LATENCY_WINDOW, sizeof(int64_t));
+
+	/* Init the latency array */
+	for(i=0; i<LATENCY_WINDOW; i++){
+		arr_read_latency[i] = 0;
+		arr_write_latency[i] = 0;
+	}
+
+	/* Init the index for latency array */
+	idx_read_latency = 0;
+	idx_write_latency = 0;
+
+	arr_read_full = 0;
+	arr_write_full = 0;
+
+	FILE* fp_perf = fopen("./data/perf_manager.dat", "r");
+	if(fp_perf != NULL){
+		fread(&written_page_nb, sizeof(int64_t), 1, fp_perf);
+		fclose(fp_perf);
+	}
+	else{
+		written_page_nb = 0;
+	}
 
 #ifdef PERF_DEBUG1
 	fp_perf1_w = fopen("./data/p_perf1_w.txt","a");
@@ -182,6 +225,9 @@ void INIT_PERF_CHECKER(void){
 	fp_perf3_al = fopen("./data/p_perf3_al.txt","a");
 	fp_perf3_up = fopen("./data/p_perf3_up.txt","a");
 #endif
+#ifdef PERF_DEBUG5
+	fp_perf5_w = fopen("./data/p_perf5_w.txt","a");
+#endif
 
 }
 
@@ -189,6 +235,18 @@ void TERM_PERF_CHECKER(void){
 
 	printf("Average Read Latency	%.3lf us\n", avg_read_latency);
 	printf("Average Write Latency	%.3lf us\n", avg_write_latency);
+
+	free(arr_read_latency);
+	free(arr_write_latency);
+
+	FILE* fp_perf_term = fopen("./data/perf_manager.dat","w");
+	if(fp_perf_term==NULL){
+		printf("ERROR[%s] File open fail\n", __FUNCTION__);
+		return;
+	}
+
+	fwrite(&written_page_nb, sizeof(int64_t), 1, fp_perf_term);
+	fclose(fp_perf_term);
 
 #ifdef PERF_DEBUG1
 	fclose(fp_perf1_w);
@@ -209,6 +267,9 @@ void TERM_PERF_CHECKER(void){
 	printf("Total Ran Merge Write 		%lf\n", total_ran_merge_write_delay);
 	printf("Total Ran Cold Merge Write	%lf\n", total_ran_cold_merge_write_delay);
 	printf("Total Ran Hot Merge Write 	%lf\n", total_ran_hot_merge_write_delay);
+#endif
+#ifdef PERF_DEBUG5
+	fclose(fp_perf5_w);
 #endif
 }
 
@@ -457,25 +518,39 @@ void SEND_TO_PERF_CHECKER(int op_type, int64_t op_delay, int type){
 		switch (op_type){
 			case READ:
 #ifdef PERF_DEBUG2
-				fprintf(fp_perf2_r, "%lf\t%lf\t%lf\n", read_latency_count, delay, ssd_util);
+				fprintf(fp_perf2_r, "%lf\t%lf\t%lf\t%lf\n", avg_read_latency, read_latency_count, delay, GET_IO_BANDWIDTH(avg_read_latency));
 #endif
-				avg_read_latency = (avg_read_latency * read_latency_count + delay)/(read_latency_count + 1);
 
-				read_latency_count++;
+				total_read_latency += delay;
+				if(arr_read_full == 0){
+					avg_read_latency = total_read_latency / idx_read_latency;
+				}
+				else{
+					total_read_latency -= arr_read_latency[idx_read_latency];
+					avg_read_latency = total_read_latency / LATENCY_WINDOW;
+				}
+
 #ifdef MONITOR_ON
-				sprintf(szTemp, "READ BW %lf ", GET_IO_BANDWIDTH(avg_read_delay));
+				sprintf(szTemp, "READ BW %lf ", GET_IO_BANDWIDTH(avg_read_latency));
 				WRITE_LOG(szTemp);
 #endif
 				break;
 			case WRITE:
 #ifdef PERF_DEBUG2
-				fprintf(fp_perf2_w, "%lf\t%lf\t%lf\n", write_latency_count, delay, ssd_util);
+				fprintf(fp_perf2_w, "%lf\t%lf\t%lf\t%lf\n", avg_write_latency, write_latency_count, delay, GET_IO_BANDWIDTH(avg_write_latency));
 #endif
 
-				avg_write_latency = (avg_write_latency * write_latency_count + delay)/(write_latency_count + 1);
-				write_latency_count++;
+				total_write_latency += delay;
+				if(arr_write_full == 0){
+					avg_write_latency = total_write_latency / idx_write_latency;
+				}
+				else{
+					total_write_latency -= arr_write_latency[idx_write_latency];
+					avg_write_latency = total_write_latency / LATENCY_WINDOW;
+				}
+
 #ifdef MONITOR_ON
-				sprintf(szTemp, "WRITE BW %lf ", GET_IO_BANDWIDTH(avg_write_delay));
+				sprintf(szTemp, "WRITE BW %lf ", GET_IO_BANDWIDTH(avg_write_latency));
 				WRITE_LOG(szTemp);
 
 				sprintf(szUtil, "UTIL %lf ", ssd_util);
@@ -801,7 +876,47 @@ int64_t CALC_IO_LATENCY(io_request* request)
 	}
 	
 	latency = (max_end_time - min_start_time)/(request->request_size);
+
+	if(type == READ){
+		arr_read_latency[idx_read_latency] = latency;
+
+		idx_read_latency++;
+		if(idx_read_latency == LATENCY_WINDOW){
+			idx_read_latency = 0;
+
+			if(arr_read_full == 0){
+				arr_read_full = 1;
+			}
+		}
+	}
 	
+	if(type == WRITE){
+		arr_write_latency[idx_write_latency] = latency;
+
+		idx_write_latency++;
+		if(idx_write_latency == LATENCY_WINDOW){
+			idx_write_latency = 0;
+			
+			if(arr_write_full == 0){
+				arr_write_full = 1;
+			}
+		}
+	}
+
+#ifdef PERF_DEBUG5
+	if(latency >= 1000000){
+		if(type == READ){
+			fprintf(fp_perf5_w, "READ latency: %ld\tsize: %d\n", latency, size);
+		}
+		else if(type == WRITE){
+			fprintf(fp_perf5_w, "WRITE latency:%ld\tsize: %d\n", latency, size);
+		}
+		fprintf(fp_perf5_w, "\t start: %ld\tend: %ld\n", min_start_time, max_end_time);
+		for(i=0; i<size; i++){
+			fprintf(fp_perf5_w, "\t%d\t%ld\t%ld\n",i, start_time_arr[i], end_time_arr[i]);
+		}
+	}
+#endif
 	return latency;
 }
 

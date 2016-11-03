@@ -8,6 +8,8 @@
 #ifndef _PERF_MANAGER_H_
 #define _PERF_MANAGER_H_
 
+#define LATENCY_WINDOW	200
+
 typedef struct nand_io_info
 {
 	int offset;
