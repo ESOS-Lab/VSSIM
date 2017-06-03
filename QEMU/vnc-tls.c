@@ -308,7 +308,9 @@ int vnc_tls_client_setup(struct VncState *vs,
             vnc_client_error(vs);
             return -1;
         }
-
+// Jinsoo Yoo - 17.06.03
+// Patch: Avoid the use of deprecated gnutls gnutls_*_set
+/*
         if (gnutls_kx_set_priority(vs->tls.session, needX509Creds ? kx_x509 : kx_anon) < 0) {
             gnutls_deinit(vs->tls.session);
             vs->tls.session = NULL;
@@ -324,6 +326,9 @@ int vnc_tls_client_setup(struct VncState *vs,
         }
 
         if (gnutls_protocol_set_priority(vs->tls.session, protocol_priority) < 0) {
+*/
+	if (gnutls_priority_set_direct(vs->tls.session, needX509Creds ? 
+		"NORMAL" : "NORMAL:+ANON-DH", NULL) < 0) { 
             gnutls_deinit(vs->tls.session);
             vs->tls.session = NULL;
             vnc_client_error(vs);
