@@ -1,5 +1,5 @@
 // File: firm_buffer_manager.c
-// Date: 2014. 12. 03.
+// Date: 2014. 12. 17.
 // Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
 // Copyright(c)2014
 // Hanyang University, Seoul, Korea
@@ -34,21 +34,16 @@ event_queue_entry* last_read_entry;
 int empty_write_buffer_frame;
 int empty_read_buffer_frame;
 
-#ifdef SSD_THREAD
+#ifdef FIRM_BUFFER_THREAD
 int r_queue_full = 0;
 int w_queue_full = 0;
-pthread_t ssd_thread_id;
+pthread_t firm_buffer_thread_id;
 pthread_cond_t eq_ready = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t eq_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t cq_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
-//TEMPs
-int temp_count1 = 0;
-int64_t temp_count2 = 0;
-//TEMPe
-
-void INIT_IO_BUFFER(void)
+void INIT_FIRM_IO_BUFFER(void)
 {
 	/* Allocation event queue structure */
 	e_queue = (event_queue*)calloc(1, sizeof(event_queue));
@@ -104,12 +99,12 @@ void INIT_IO_BUFFER(void)
 	empty_write_buffer_frame = WRITE_BUFFER_FRAME_NB;
 	empty_read_buffer_frame = READ_BUFFER_FRAME_NB; 
 
-#ifdef SSD_THREAD
-	pthread_create(&ssd_thread_id, NULL, SSD_THREAD_MAIN_LOOP, NULL);
+#ifdef FIRM_BUFFER_THREAD
+	pthread_create(&firm_buffer_thread_id, NULL, FIRM_BUFFER_THREAD_MAIN_LOOP, NULL);
 #endif
 }
 
-void TERM_IO_BUFFER(void)
+void TERM_FIRM_IO_BUFFER(void)
 {
 	/* Flush all event in event queue */
 	FLUSH_EVENT_QUEUE_UNTIL(e_queue->tail);
@@ -135,24 +130,24 @@ void INIT_WB_VALID_ARRAY(void)
 	}
 }
 
-#ifdef SSD_THREAD
-void *SSD_THREAD_MAIN_LOOP(void *arg)
+#ifdef FIRM_BUFFER_THREAD
+void *FIRM_BUFFER_THREAD_MAIN_LOOP(void *arg)
 {
 	while(1){
 		pthread_mutex_lock(&eq_lock);
 
-#if defined SSD_THREAD_MODE_1
+#if defined FIRM_BUFFER_THREAD_MODE_1
 		while(e_queue->entry_nb == 0){
-#ifdef SSD_THREAD_DEBUG
+#ifdef FIRM_BUFFER_THREAD_DEBUG
 			printf("[%s] wait signal..\n",__FUNCTION__);
 #endif
 			pthread_cond_wait(&eq_ready, &eq_lock);
 		}
-#ifdef SSD_THREAD_DEBUG
+#ifdef FIRM_BUFFER_THREAD_DEBUG
 		printf("[%s] Get up! \n",__FUNCTION__);
 #endif
-		DEQUEUE_IO();
-#elif defined SSD_THREAD_MODE_2
+		DEQUEUE_HOST_IO();
+#elif defined FIRM_BUFFER_THREAD_MODE_2
 		while(r_queue_full == 0 && w_queue_full == 0){
 			pthread_cond_wait(&eq_ready, &eq_lock);
 		}
@@ -174,54 +169,17 @@ void *SSD_THREAD_MAIN_LOOP(void *arg)
 }
 #endif
 
-void ENQUEUE_IO(int io_type, int32_t sector_nb, unsigned int length)
+void ENQUEUE_HOST_IO(int io_type, int32_t sector_nb, unsigned int length)
 {
 #ifdef FIRM_IO_BUF_DEBUG
 	printf("[%s] Start.\n",__FUNCTION__);
 #endif
 
-#ifdef GET_FIRM_WORKLOAD
-	FILE* fp_workload = fopen("./data/workload_firm.txt","a");
-	struct timeval tv;
-	struct tm *lt;
-	double curr_time;
-	gettimeofday(&tv, 0);
-	lt = localtime(&(tv.tv_sec));
-	curr_time = lt->tm_hour*3600 + lt->tm_min*60 + lt->tm_sec + (double)tv.tv_usec/(double)1000000;
 	if(io_type == READ){
-		fprintf(fp_workload,"%lf %d %u %x R\n",curr_time, sector_nb, length, 1);
+		ENQUEUE_HOST_READ(sector_nb, length);
 	}
 	else if(io_type == WRITE){
-		fprintf(fp_workload,"%lf %d %u %x W\n",curr_time, sector_nb, length, 0);
-	}
-	fclose(fp_workload);
-#endif
-
-/* Check event queue depth */
-#ifdef GET_QUEUE_DEPTH
-	FILE* fp_workload = fopen("./data/queue_depth.txt","a");
-        struct timeval tv;
-        struct tm *lt;
-        double curr_time;
-        gettimeofday(&tv, 0);
-        lt = localtime(&(tv.tv_sec));
-        curr_time = lt->tm_hour*3600 + lt->tm_min*60 + lt->tm_sec + (double)tv.tv_usec/(double)1000000;
-        
-	int n_read_event = COUNT_READ_EVENT();
-	int n_write_event = e_queue->entry_nb - n_read_event;
-	if(io_type == READ)
-		fprintf(fp_workload,"%lf\tR\t%d\t%d\t%d\t%d\t%u\n",curr_time, e_queue->entry_nb, n_read_event, n_write_event, sector_nb, length);
-	else if(io_type == WRITE)
-		fprintf(fp_workload,"%lf\tW\t%d\t%d\t%d\t%d\t%u\n",curr_time, e_queue->entry_nb, n_read_event, n_write_event, sector_nb, length);
-
-        fclose(fp_workload);
-#endif
-
-	if(io_type == READ){
-		ENQUEUE_READ(sector_nb, length);
-	}
-	else if(io_type == WRITE){
-		ENQUEUE_WRITE(sector_nb, length);
+		ENQUEUE_HOST_WRITE(sector_nb, length);
 	}
 	else{
 		printf("ERROR[%s] Wrong IO type.\n", __FUNCTION__);
@@ -232,7 +190,7 @@ void ENQUEUE_IO(int io_type, int32_t sector_nb, unsigned int length)
 #endif
 }
 
-void DEQUEUE_IO(void)
+void DEQUEUE_HOST_IO(void)
 {
 #ifdef FIRM_IO_BUF_DEBUG
 	printf("[%s] Start.\n",__FUNCTION__);
@@ -291,7 +249,7 @@ void DEQUEUE_IO(void)
 		}
 	}
 
-#ifdef SSD_THREAD
+#ifdef FIRM_BUFFER_THREAD
 	pthread_mutex_lock(&cq_lock);
 #endif
 	if(io_type == READ){
@@ -308,7 +266,7 @@ void DEQUEUE_IO(void)
 		c_e_queue->entry_nb++;
 	}
 
-#ifdef SSD_THREAD
+#ifdef FIRM_BUFFER_THREAD
 	pthread_mutex_unlock(&cq_lock);
 #endif
 
@@ -317,7 +275,7 @@ void DEQUEUE_IO(void)
 #endif
 }
 
-void DEQUEUE_COMPLETED_READ(void)
+void DEQUEUE_COMPLETED_HOST_READ(void)
 {
 #ifdef FIRM_IO_BUF_DEBUG
 	printf("[%s] Start.\n",__FUNCTION__);
@@ -366,7 +324,7 @@ void DEQUEUE_COMPLETED_READ(void)
 #endif
 }
 
-void ENQUEUE_READ(int32_t sector_nb, unsigned int length)
+void ENQUEUE_HOST_READ(int32_t sector_nb, unsigned int length)
 {
 #ifdef FIRM_IO_BUF_DEBUG
 	printf("[%s] Start.\n",__FUNCTION__);
@@ -441,7 +399,7 @@ void ENQUEUE_READ(int32_t sector_nb, unsigned int length)
 #endif
 }
 
-void ENQUEUE_WRITE(int32_t sector_nb, unsigned int length)
+void ENQUEUE_HOST_WRITE(int32_t sector_nb, unsigned int length)
 {
 #ifdef FIRM_IO_BUF_DEBUG
 	printf("[%s] Start.\n",__FUNCTION__);
@@ -664,7 +622,9 @@ void FLUSH_EVENT_QUEUE_UNTIL(event_queue_entry* e_q_entry)
 	event_queue_entry* temp_e_q_entry = e_queue->head;
 	
 	if(e_q_entry == NULL || temp_e_q_entry == NULL){
-		printf("ERROR[%s] Invalid event pointer\n",__FUNCTION__);
+#ifdef FIRM_IO_BUF_DEBUG
+		printf("ERROR[%s] NULL event pointer\n",__FUNCTION__);
+#endif
 		return;
 	}
 
@@ -681,7 +641,7 @@ void FLUSH_EVENT_QUEUE_UNTIL(event_queue_entry* e_q_entry)
 
 	/* Dequeue event */
 	for(i=0; i<count; i++){
-		DEQUEUE_IO();
+		DEQUEUE_HOST_IO();
 	}
 
 #ifdef FIRM_IO_BUF_DEBUG
@@ -839,12 +799,12 @@ void SECURE_WRITE_BUFFER(void)
 void SECURE_READ_BUFFER(void)
 {
 	if(c_e_queue->entry_nb != 0){
-		DEQUEUE_COMPLETED_READ();
+		DEQUEUE_COMPLETED_HOST_READ();
 	}
 
 	if(last_read_entry != NULL){
 		FLUSH_EVENT_QUEUE_UNTIL(last_read_entry);
-		DEQUEUE_COMPLETED_READ();
+		DEQUEUE_COMPLETED_HOST_READ();
 	}
 }
 

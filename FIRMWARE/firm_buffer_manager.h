@@ -1,14 +1,14 @@
 // File: firm_buffer_manager.h
-// Date: 2014. 12. 03.
+// Date: 2014. 12. 17.
 // Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
 // Copyright(c)2014
 // Hanyang University, Seoul, Korea
 // Embedded Software Systems Laboratory. All right reserved
 
-#ifndef _SSD_BUFFER_MANAGER_H_
-#define _SSD_BUFFER_MANAGER_H_
+#ifndef _FIRM_BUFFER_MANAGER_H_
+#define _FIRM_BUFFER_MANAGER_H_
 
-#ifdef SSD_THREAD
+#ifdef FIRM_BUFFER_THREAD
 extern int r_queue_full;
 extern int w_queue_full;
 extern pthread_cond_t eq_ready;
@@ -33,17 +33,17 @@ typedef struct event_queue
 	event_queue_entry* tail;
 }event_queue;
 
-void INIT_IO_BUFFER(void);
-void TERM_IO_BUFFER(void);
+void INIT_FIRM_IO_BUFFER(void);
+void TERM_FIRM_IO_BUFFER(void);
 void INIT_WB_VALID_ARRAY(void);
 
-void *SSD_THREAD_MAIN_LOOP(void *arg);
-void ENQUEUE_IO(int io_type, int32_t sector_nb, unsigned int length);
-void ENQUEUE_READ(int32_t sector_nb, unsigned int length);
-void ENQUEUE_WRITE(int32_t sector_nb, unsigned int length);
+void *FIRM_BUFFER_THREAD_MAIN_LOOP(void *arg);
+void ENQUEUE_HOST_IO(int io_type, int32_t sector_nb, unsigned int length);
+void ENQUEUE_HOST_READ(int32_t sector_nb, unsigned int length);
+void ENQUEUE_HOST_WRITE(int32_t sector_nb, unsigned int length);
 
-void DEQUEUE_IO(void);
-void DEQUEUE_COMPLETED_READ(void);
+void DEQUEUE_HOST_IO(void);
+void DEQUEUE_COMPLETED_HOST_READ(void);
 
 event_queue_entry* ALLOC_NEW_EVENT(int io_type, int32_t sector_nb, unsigned int length, void* buf);
 

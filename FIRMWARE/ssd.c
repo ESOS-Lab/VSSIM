@@ -1,5 +1,5 @@
 // File: ssd.c
-// Date: 2014. 12. 03.
+// Date: 2015. 01. 06.
 // Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
 // Copyright(c)2014
 // Hanyang University, Seoul, Korea
@@ -7,11 +7,6 @@
 
 #include "ssd.h"
 #include "common.h"
-
-#ifdef GET_WORKLOAD
-#include <time.h>
-#include <sys/time.h>
-#endif
 
 //sector_entry* PARSE_SECTOR_LIST(trim_data, length);
 void SSD_INIT(void)
@@ -26,69 +21,96 @@ void SSD_TERM(void)
 
 void SSD_WRITE(unsigned int length, int32_t sector_nb)
 {
-#if defined SSD_THREAD	
+#if defined FIRM_BUFFER_THREAD	
 
 	pthread_mutex_lock(&cq_lock);
-	DEQUEUE_COMPLETED_READ();
+	DEQUEUE_COMPLETED_HOST_READ();
 	pthread_mutex_unlock(&cq_lock);
 
+	/* added to prevent infinite loop in mode 1 */
+#if defined FIRM_BUFFER_THREAD_MODE_1
+	while(EVENT_QUEUE_IS_FULL(WRITE, length)){
+		pthread_cond_signal(&eq_ready);
+	}
+#elif defined FIRM_BUFFER_THREAD_MODE_2
 	if(EVENT_QUEUE_IS_FULL(WRITE, length)){
 		w_queue_full = 1;
 		while(w_queue_full == 1){
 			pthread_cond_signal(&eq_ready);
 		}
 	}
+#endif
 	
 	pthread_mutex_lock(&eq_lock);
-	ENQUEUE_IO(WRITE, sector_nb, length);
+	ENQUEUE_HOST_IO(WRITE, sector_nb, length);
 	pthread_mutex_unlock(&eq_lock);
 
-    #ifdef SSD_THREAD_MODE_1
+    #ifdef FIRM_BUFFER_THREAD_MODE_1
 	pthread_cond_signal(&eq_ready);
     #endif
 
 #elif defined FIRM_IO_BUFFER
-	DEQUEUE_COMPLETED_READ();
+	DEQUEUE_COMPLETED_HOST_READ();
 	if(EVENT_QUEUE_IS_FULL(WRITE, length)){
 		SECURE_WRITE_BUFFER();
 	}
-	ENQUEUE_IO(WRITE, sector_nb, length);
+	ENQUEUE_HOST_IO(WRITE, sector_nb, length);
 #else
 	FTL_WRITE(sector_nb, length);
 #endif
+
+#ifdef MONITOR_ON
+	char szTemp[1024];
+	sprintf(szTemp, "WRITE PAGE %d ", length);
+	WRITE_LOG(szTemp);
+#endif
+
 }
 
 void SSD_READ(unsigned int length, int32_t sector_nb)
 {
-#if defined SSD_THREAD
+#if defined FIRM_BUFFER_THREAD
 
 	pthread_mutex_lock(&cq_lock);
-	DEQUEUE_COMPLETED_READ();
+	DEQUEUE_COMPLETED_HOST_READ();
 	pthread_mutex_unlock(&cq_lock);
-
+	
+	/* added to prevent infinite loop in mode 1 */
+#if defined FIRM_BUFFER_THREAD_MODE_1
+	while(EVENT_QUEUE_IS_FULL(READ, length)){
+		pthread_cond_signal(&eq_ready);
+	}
+#elif defined FIRM_BUFFER_THREAD_MODE_2
 	if(EVENT_QUEUE_IS_FULL(READ, length)){
 		r_queue_full = 1;
 		while(r_queue_full == 1){
 			pthread_cond_signal(&eq_ready);
 		}
 	}
+#endif
 
 	pthread_mutex_lock(&eq_lock);
-	ENQUEUE_IO(READ, sector_nb, length);
+	ENQUEUE_HOST_IO(READ, sector_nb, length);
 	pthread_mutex_unlock(&eq_lock);
 
-    #ifdef SSD_THREAD_MODE_1
+    #ifdef FIRM_BUFFER_THREAD_MODE_1
 	pthread_cond_signal(&eq_ready);
     #endif
 
 #elif defined FIRM_IO_BUFFER
-	DEQUEUE_COMPLETED_READ();
+	DEQUEUE_COMPLETED_HOST_READ();
 	if(EVENT_QUEUE_IS_FULL(READ, length)){
 		SECURE_READ_BUFFER();
 	}
-	ENQUEUE_IO(READ, sector_nb, length);
+	ENQUEUE_HOST_IO(READ, sector_nb, length);
 #else
 	FTL_READ(sector_nb, length);
+#endif
+
+#ifdef MONITOR_ON
+	char szTemp[1024];
+	sprintf(szTemp, "READ PAGE %d ", length);
+	WRITE_LOG(szTemp);
 #endif
 }
 
