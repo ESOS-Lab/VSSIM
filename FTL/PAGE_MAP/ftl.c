@@ -40,7 +40,7 @@ void FTL_INIT(void)
 		INIT_CACHE();
 #endif
 #ifdef FIRM_IO_BUFFER
-		INIT_IO_BUFFER();
+		INIT_FIRM_IO_BUFFER();
 #endif
 #ifdef MONITOR_ON
 		INIT_LOG_MANAGER();
@@ -64,7 +64,7 @@ void FTL_TERM(void)
 	printf("[%s] start\n", __FUNCTION__);
 
 #ifdef FIRM_IO_BUFFER
-	TERM_IO_BUFFER();
+	TERM_FIRM_IO_BUFFER();
 #endif
 	TERM_MAPPING_TABLE();
 	TERM_INVERSE_MAPPING_TABLE();
