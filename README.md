@@ -41,8 +41,7 @@ Download the latest version from github
 
 - QEMU, KVM Installation
 
-    $ sudo apt-get install qemu
-    $ sudo apt-get install qemu-kvm
+    $ sudo apt-get install qemu qemu-kvm
 
 - Qt5 Installation
 
@@ -50,7 +49,7 @@ Download the latest version from github
 
 - Resolving Library Dependency
 
-    $ sudo apt-get install zlib1g-dev libsdl-image1.2-dev libgnutls-dev libvncserver-dev libpci-dev
+    $ sudo apt-get install zlib1g-dev libsdl-image1.2-dev libgnutls-dev libvncserver-dev libpci-dev g++
 
 #### Folder Composition
 

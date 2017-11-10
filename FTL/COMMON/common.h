@@ -29,40 +29,15 @@
 	//#define FTL_MAP_CACHE		/* FTL MAP Cache for PAGE MAP */
 #endif
 
-/* Block Mapping FTL */
-#ifdef BLOCK_MAP
-	#define GC_ON
-	#define GC_TRIGGER_OVERALL
-#endif
-
-/* Hybrid Mapping FTL */
-#ifdef FAST_FTL
-	//#define FTL_FAST1
-	//#define LAST_SEQ_COND
-	//#define SSD_SEQ_W_VALIDATION
-#endif
-#ifdef LAST_FTL
-	//#define FAST_SEQ_COND
-#endif
-
-/* Disaggregated Mapping */
-#ifdef DA_MAP
-	#define BM_START_SECTOR_NB 8388608 // 8388608: 4GByte for PM, Remains for BM
-	#define GC_ON
-	//#define GC_TRIGGER_OVERALL
-#endif
-
 //#define REMAIN_IO_DELAY	/* Remain delay for validation */
 //#define O_DIRECT_VSSIM	/* O_DIRECT IO mode */
 
 /* VSSIM Benchmark*/
-#ifndef VSSIM_BENCH
-  #define DEL_QEMU_OVERHEAD
-  #define FIRM_IO_BUFFER	/* SSD Read/Write Buffer ON */
-  #define FIRM_BUFFER_THREAD		/* Enable SSD thread & SSD Read/Write Buffer */
-  #define FIRM_BUFFER_THREAD_MODE_1
-  // #define FIRM_BUFFER_THREAD_MODE_2
-#endif
+#define DEL_QEMU_OVERHEAD
+#define FIRM_IO_BUFFER	/* SSD Read/Write Buffer ON */
+#define FIRM_BUFFER_THREAD		/* Enable SSD thread & SSD Read/Write Buffer */
+#define FIRM_BUFFER_THREAD_MODE_1
+// #define FIRM_BUFFER_THREAD_MODE_2
 
 /* HEADER - VSSIM CONFIGURATION */
 #include "vssim_config_manager.h"

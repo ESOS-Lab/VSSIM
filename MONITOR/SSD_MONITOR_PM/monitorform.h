@@ -42,10 +42,7 @@ private:
 
     /* variables */
     long long int time;
-    long long int *access_time_reg_mon;
-    int *access_type_reg_mon;
     int CELL_PROGRAM_DELAY;
-    int powCount;
 
     long int gcCount;
     int gcStarted;

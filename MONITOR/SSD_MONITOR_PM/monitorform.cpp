@@ -12,8 +12,6 @@
 #include <QFile>
 #include <QFileDialog>
 
-int FLASH_NB, PLANES_PER_FLASH;
-
 MonitorForm::MonitorForm(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::MonitorForm)
@@ -44,14 +42,10 @@ MonitorForm::~MonitorForm()
  */
 void MonitorForm::init_variables()
 {
-    FILE* pfData;
-    char szCommand[1024];
-
     this->setWindowTitle("SSD Monitor");
 
     /* initialize count variables. */
     time = 0;
-    powCount = 0;
 
     gcCount = 0;
     gcStarted = 0;
@@ -65,40 +59,6 @@ void MonitorForm::init_variables()
     writeAmpCount = writtenPageCount = 0;
 
     readTime = writeTime = 0;
-
-    /* open ssd configuration file, set values. */
-    pfData = fopen("./ssd.conf","r");
-
-    if(pfData == NULL)
-        printf(" Monitor file open failed\n");
-    else
-    {
-        printf(" Monitor file open success\n");
-
-        /* read configuration values from file. */
-        while(fscanf(pfData, "%s", szCommand) != EOF)
-        {
-            if(strcmp(szCommand, "FLASH_NB") == 0)
-                fscanf(pfData, "%d", &FLASH_NB);
-
-            else if(strcmp(szCommand, "PLANES_PER_FLASH") == 0)
-                fscanf(pfData, "%d", &PLANES_PER_FLASH);
-
-            else if(strcmp(szCommand, "CELL_PROGRAM_DELAY") == 0)
-                fscanf(pfData, "%d", &CELL_PROGRAM_DELAY);
-
-            memset(szCommand, 0x00, 1024);
-        }
-
-        fclose(pfData);
-
-        access_time_reg_mon = (long long int*)malloc(sizeof(long long int) * FLASH_NB * PLANES_PER_FLASH);
-        access_type_reg_mon = (int *)malloc(sizeof(int) * FLASH_NB * PLANES_PER_FLASH);
-
-        printf("\n\t initialize\n");
-        memset(access_time_reg_mon, 0x00, sizeof(long long int) * FLASH_NB * PLANES_PER_FLASH);
-        memset(access_type_reg_mon, 0x00, sizeof(int) * FLASH_NB * PLANES_PER_FLASH);
-    }
 
     fflush(stdout);
 }
@@ -129,18 +89,8 @@ void MonitorForm::onReceive()
         szCmd = socket->readLine();
         szCmdList = szCmd.split(" ");
 
-        /* POWER : store inputs to reg_mon's. */
-        if(szCmdList[0] == "POWER")
-        {
-            int regst;
-            QTextStream stream1(&szCmdList[1]), stream2(&szCmdList[2]), stream3(&szCmdList[3]);
-            stream1 >> regst;
-            stream2 >> access_time_reg_mon[regst];
-            stream3 >> access_type_reg_mon[regst];
-        }
-
         /* WRITE : write count, write sector count, write speed. */
-        else if(szCmdList[0] == "WRITE")
+        if(szCmdList[0] == "WRITE")
         {
             QTextStream stream(&szCmdList[2]);
 
