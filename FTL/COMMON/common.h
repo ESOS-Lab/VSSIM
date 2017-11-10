@@ -20,17 +20,11 @@
 /* VSSIM Function */
 #define MONITOR_ON
 
-/* Page Mapping FTL */
-#ifdef PAGE_MAP
-	#define GC_ON			/* Garbage Collection for PAGE MAP */
-	#define GC_TRIGGER_OVERALL
-	//#define GC_VICTIM_OVERALL
-	//#define WRITE_NOPARAL
-	//#define FTL_MAP_CACHE		/* FTL MAP Cache for PAGE MAP */
-#endif
-
-//#define REMAIN_IO_DELAY	/* Remain delay for validation */
-//#define O_DIRECT_VSSIM	/* O_DIRECT IO mode */
+#define GC_ON			/* Garbage Collection for PAGE MAP */
+#define GC_TRIGGER_OVERALL
+//#define GC_VICTIM_OVERALL
+//#define WRITE_NOPARAL
+//#define FTL_MAP_CACHE		/* FTL MAP Cache for PAGE MAP */
 
 /* VSSIM Benchmark*/
 #define DEL_QEMU_OVERHEAD

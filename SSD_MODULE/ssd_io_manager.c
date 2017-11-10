@@ -29,8 +29,8 @@ int64_t init_diff_reg=0;
 int64_t io_alloc_overhead=0;
 int64_t io_update_overhead=0;
 
-char ssd_version[4] = "1.1";
-char ssd_date[9] = "16.03.04";
+char ssd_version[4] = "1.2";
+char ssd_date[9] = "17.11.10";
 
 
 int64_t get_usec(void)
@@ -140,9 +140,6 @@ int SSD_PAGE_WRITE(unsigned int flash_nb, unsigned int block_nb, unsigned int pa
 		free(n_io_info);
 	}
 
-//	printf("WRITE reg %d\tch %d\toff %d\n", reg, channel, offset);
-//	SSD_PRINT_STAMP();
-
 	return SUCCESS;
 }
 
@@ -246,9 +243,6 @@ int SSD_PAGE_READ(unsigned int flash_nb, unsigned int block_nb, unsigned int pag
 	SSD_CELL_RECORD(reg, READ);
 	SSD_REG_RECORD(reg, READ, channel, n_io_info);
 
-//	printf("READ reg %d\tch %d\toff %d\n", reg, channel, offset);
-//	SSD_PRINT_STAMP();
-
 #ifdef O_DIRECT_VSSIM
 	if(offset == (n_io_info->io_page_nb - 1)){
 		SSD_REMAIN_IO_DELAY(reg);
@@ -292,8 +286,7 @@ int SSD_FLASH_ACCESS(unsigned int flash_nb, int reg)
 	int ret = 0;
 
 	for(i=0;i<PLANES_PER_FLASH;i++){
-//		if(r_num != reg && access_nb[r_num][0] == io_request_seq_nb){
-		if(access_nb[r_num][0] == -1){
+		if(reg_io_cmd[r_num] == NOOP){
 			/* That's OK */
 		}
 		else{
@@ -376,6 +369,9 @@ int SSD_REG_RECORD(int reg, int cmd, int channel, nand_io_info* n_io_info)
 		offset = n_io_info->offset;
 		io_seq_nb = n_io_info->io_seq_nb;
 	}
+	else if(cmd == ERASE){
+		type = ERASE;
+	}
 
 	reg_io_cmd[reg] = cmd;
 	reg_io_type[reg] = type;
@@ -412,6 +408,7 @@ int SSD_REG_RECORD(int reg, int cmd, int channel, nand_io_info* n_io_info)
 		}
 	}
 	else if(cmd == ERASE){
+
 		/* Update SATA request Info */
 		access_nb[reg][0] = -1;
 		access_nb[reg][1] = -1;
@@ -546,12 +543,6 @@ int SSD_REG_WRITE_DELAY(int reg)
 
 	/* Update Time Stamp Struct */
 	reg_io_time[reg] = -1;
-
-//TEMPs
-//	FILE* fp_temp = fopen("./data/write.txt","a");
-//	fprintf(fp_temp,"%ld\n",end-start);
-//	fclose(fp_temp);
-//TEMPe
 
 	return ret;
 }
@@ -706,7 +697,7 @@ int SSD_BLOCK_ERASE_DELAY(int reg)
 	int64_t diff;
 	int64_t time_stamp = cell_io_time[reg];
 
-	if( time_stamp == -1)
+	if(time_stamp == -1)
 		return 0;
 
 	/* Block Erase Delay */
@@ -756,10 +747,7 @@ int64_t SSD_GET_CH_ACCESS_TIME_FOR_READ(int channel, int reg)
 			r_num++;
 		}
 	}
-//TEMP
-//	FILE* fp_temp = fopen("./data/temp_read.txt","a");
-//	fprintf(fp_temp,"%ld\n", latest_time - (cell_io_time[reg] + CELL_READ_DELAY));
-//	fclose(fp_temp);
+
 	return latest_time;
 }
 

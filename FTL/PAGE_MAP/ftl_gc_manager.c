@@ -121,6 +121,7 @@ int GARBAGE_COLLECTION(void)
 #ifdef FTL_DEBUG
 	printf("[%s] [f: %d, b: %d] Copy Page : %d, total victim : %ld, total empty : %ld \n",__FUNCTION__, victim_phy_flash_nb, victim_phy_block_nb,  copy_page_nb, total_victim_block_nb, total_empty_block_nb);
 #endif
+
 	SSD_BLOCK_ERASE(victim_phy_flash_nb, victim_phy_block_nb);
 	UPDATE_BLOCK_STATE(victim_phy_flash_nb, victim_phy_block_nb, EMPTY_BLOCK);
 	INSERT_EMPTY_BLOCK(victim_phy_flash_nb, victim_phy_block_nb);
