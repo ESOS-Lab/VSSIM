@@ -1,7 +1,9 @@
-// Copyright(c)2013 
-//
+// File: ftl_gc_manager.h
+// Date: 2018. 02. 08.
+// Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
+// Copyright(c)2018
 // Hanyang University, Seoul, Korea
-// Embedded Software Systems Lab. All right reserved
+// Embedded Software Systems Laboratory. All right reserved
 
 #ifndef _GC_MANAGER_H_
 #define _GC_MANAGER_H_
