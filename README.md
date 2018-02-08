@@ -69,6 +69,8 @@ Download the latest version from github
 
     * QEMU_MAKER: There is Makefile, which QEMU uses to compile FTL code.
 
+    * Note) BLOCK_MAP, FAST, and LAST do not work with current SSD_MODULE.
+
 4. MONITOR: There is a source code of SSD Monitor, which is a graphic user interface.
 
 5. OS: This is a folder where iso files of necessary OS are located when VSSIM installs Guest OS.
