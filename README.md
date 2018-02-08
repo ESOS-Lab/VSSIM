@@ -211,3 +211,10 @@ Configure 8 channel, 2 way SSD. Page size is 4 KByte. NAND Latency is set to 300
     5. Configure 4 channel and 4 way SSD and repeat the experiments 1, 2, and 3 again.
     6. Discuss the effect the channel and way parallelism over SSD performance and its implication on host performance. 
 
+
+Future Works
+-----
+There are several works to do such as porting Hybrid FTLs to SSD Module. Welcome to join us to develop VSSIM!
+
+    1. In FTL directory, there are source codes for Hybrid FTLs. It is needed that the SSD IO interface should be modified to work with current SSD Module.
+    2. The source codes in SSD\_MONITOR\_HYBRID directory are developed based on QT3. It needs to support QT4 or later version.
