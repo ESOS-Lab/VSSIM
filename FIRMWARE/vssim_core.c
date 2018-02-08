@@ -333,8 +333,6 @@ void INSERT_NEW_PER_CORE_REQUEST(int core_id, event_queue_entry* eq_entry,
 	enum vssim_io_type io_type = eq_entry->io_type;
 	bool flush = eq_entry->flush;
 
-//TEMP
-//	core_req_entry* last_cr_entry = NULL;
 	core_req_entry* new_cr_entry = NULL;
 	core_req_queue* cur_cr_queue = NULL;	
 
@@ -357,38 +355,20 @@ void INSERT_NEW_PER_CORE_REQUEST(int core_id, event_queue_entry* eq_entry,
 	/* Acquire lock for per-core request queue */
 	pthread_mutex_lock(&cur_cr_queue->lock);
 
-	/* Get the last entry of the core request queue */
-//	last_cr_entry = cur_cr_queue->tail;
+	/* Create core request entry */
+	new_cr_entry = CREATE_NEW_CORE_EVENT(eq_entry, core_id, 
+					sector_nb, length, flush);
 
-	/* Check whether the request can be merged with 
-		the last entry */
-
-//TEMP
-/*	if(last_cr_entry != NULL
-			&& last_cr_entry->parent == eq_entry
-			&& last_cr_entry->sector_nb + last_cr_entry->length == sector_nb
-			&& last_cr_entry->io_type == io_type
-			&& last_cr_entry->flush == flush){
-
-		last_cr_entry->length += length;
+	if(cur_cr_queue->entry_nb == 0){
+		cur_cr_queue->head = new_cr_entry;
+		cur_cr_queue->tail = new_cr_entry;
 	}
 	else{
-*/
-		/* Create core request entry */
-		new_cr_entry = CREATE_NEW_CORE_EVENT(eq_entry, core_id, 
-						sector_nb, length, flush);
+		cur_cr_queue->tail->next = new_cr_entry;
+		cur_cr_queue->tail = new_cr_entry;
+	}
 
-		if(cur_cr_queue->entry_nb == 0){
-			cur_cr_queue->head = new_cr_entry;
-			cur_cr_queue->tail = new_cr_entry;
-		}
-		else{
-			cur_cr_queue->tail->next = new_cr_entry;
-			cur_cr_queue->tail = new_cr_entry;
-		}
-
-		cur_cr_queue->entry_nb++;
-//	}
+	cur_cr_queue->entry_nb++;
 
 	/* Release lock for per-core request queue */
 	pthread_mutex_unlock(&cur_cr_queue->lock);
