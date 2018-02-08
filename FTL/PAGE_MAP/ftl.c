@@ -253,9 +253,7 @@ int _FTL_READ(int32_t sector_nb, unsigned int length)
 #endif
 
 #ifdef MONITOR_ON
-	char szTemp[1024];
-	sprintf(szTemp, "READ PAGE %d ", length);
-	WRITE_LOG(szTemp);
+	UPDATE_LOG(LOG_READ_PAGE, read_page_nb);
 #endif
 
 #ifdef FTL_DEBUG
@@ -368,11 +366,7 @@ int _FTL_WRITE(int32_t sector_nb, unsigned int length)
 #endif
 
 #ifdef MONITOR_ON
-	char szTemp[1024];
-	sprintf(szTemp, "WRITE PAGE %d ", length);
-	WRITE_LOG(szTemp);
-	sprintf(szTemp, "WB CORRECT %d", write_page_nb);
-	WRITE_LOG(szTemp);
+	UPDATE_LOG(LOG_WRITE_PAGE, write_page_nb);
 #endif
 
 #ifdef FTL_DEBUG

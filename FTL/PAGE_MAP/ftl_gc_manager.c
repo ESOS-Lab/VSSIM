@@ -129,11 +129,7 @@ int GARBAGE_COLLECTION(void)
 	gc_count++;
 
 #ifdef MONITOR_ON
-	char szTemp[1024];
-	sprintf(szTemp, "GC ");
-	WRITE_LOG(szTemp);
-	sprintf(szTemp, "WB AMP %d", copy_page_nb);
-	WRITE_LOG(szTemp);
+	UPDATE_LOG(LOG_GC_AMP, copy_page_nb);
 #endif
 
 #ifdef FTL_DEBUG
