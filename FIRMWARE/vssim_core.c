@@ -333,7 +333,8 @@ void INSERT_NEW_PER_CORE_REQUEST(int core_id, event_queue_entry* eq_entry,
 	enum vssim_io_type io_type = eq_entry->io_type;
 	bool flush = eq_entry->flush;
 
-	core_req_entry* last_cr_entry = NULL;
+//TEMP
+//	core_req_entry* last_cr_entry = NULL;
 	core_req_entry* new_cr_entry = NULL;
 	core_req_queue* cur_cr_queue = NULL;	
 
@@ -357,7 +358,7 @@ void INSERT_NEW_PER_CORE_REQUEST(int core_id, event_queue_entry* eq_entry,
 	pthread_mutex_lock(&cur_cr_queue->lock);
 
 	/* Get the last entry of the core request queue */
-	last_cr_entry = cur_cr_queue->tail;
+//	last_cr_entry = cur_cr_queue->tail;
 
 	/* Check whether the request can be merged with 
 		the last entry */

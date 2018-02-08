@@ -9,11 +9,12 @@
 #define _FLASH_MEMORY_H
 
 /* Command Definitions */
-#define CMD_NOOP		0xFF 
-#define CMD_PAGE_READ		0x00
-#define CMD_PAGE_PROGRAM	0x80
-#define CMD_PAGE_COPYBACK	0x85
-#define CMD_BLOCK_ERASE		0x60
+#define CMD_NOOP			0xFF 
+#define CMD_PAGE_READ			0x00
+#define CMD_PAGE_PROGRAM		0x80
+#define CMD_PAGE_COPYBACK		0x85
+#define CMD_PAGE_COPYBACK_PHASE2	0x90
+#define CMD_BLOCK_ERASE			0x60
 
 /* The number of ppn list per flash */
 #define N_PPNS_PER_PLANE	128
@@ -82,6 +83,7 @@ int FLASH_PAGE_READ(ppn_t ppn);
 int FLASH_PAGE_WRITE(ppn_t ppn);
 int FLASH_BLOCK_ERASE(pbn_t pbn);
 int FLASH_PAGE_COPYBACK(ppn_t dst_ppn, ppn_t src_ppn);
+int FLASH_PAGE_COPYBACK_PHASE2(ppn_t dst_ppn, ppn_t src_ppn);
 
 void SET_CMD2_TO_REG(plane* cur_plane, uint8_t cmd, ppn_t ppn);
 
