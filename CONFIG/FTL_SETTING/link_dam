@@ -1,0 +1,71 @@
+# File: link_dam
+# Date: 2014. 12. 04.
+# Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
+# Copyright(c)2014
+# Hanyang University, Seoul, Korea
+# Embedded Software Systems Laboratory. All right reserved
+
+#!/bin/bash
+# This file used for linking : QEMU <-> SSD FTL SOURCE
+# For "SSD PAGE MAPPING FTL"
+# Usage : Just typing your shell -> " $./link_pm "
+
+# ------------------- Source File location -----------------------      ----- linked file destination ----
+
+#Link make file configuration
+ln -s ../CONFIG/QEMU_MAKEFILE/Makefile_dam			../../QEMU/Makefile.target
+
+# SSD operation control header file "common.h"
+ln -s ../../FTL/COMMON/common.h					../../QEMU/hw/common.h
+ln -s ../../FTL/COMMON/ftl_perf_manager.h			../../QEMU/hw/ftl_perf_manager.h
+ln -s ../../FTL/COMMON/ftl_perf_manager.c			../../QEMU/hw/ftl_perf_manager.c
+ln -s ../../FTL/COMMON/ftl_meta_manager.h			../../QEMU/hw/ftl_meta_manager.h
+ln -s ../../FTL/COMMON/ftl_meta_manager.c			../../QEMU/hw/ftl_meta_manager.c
+ln -s ../../SSD_MODULE/ssd_util.h				../../QEMU/hw/ssd_util.h
+
+# HEADER FILE
+ln -s ../../FTL/DA_MAP/ftl_type.h				../../QEMU/hw/ftl_type.h
+ln -s ../../FTL/DA_MAP/ftl.h					../../QEMU/hw/ftl.h
+ln -s ../../FTL/DA_MAP/ftl_block_manager.h			../../QEMU/hw/ftl_block_manager.h
+ln -s ../../FTL/DA_MAP/ftl_inverse_mapping_manager.h		../../QEMU/hw/ftl_inverse_mapping_manager.h
+ln -s ../../FTL/DA_MAP/ftl_gc_manager.h				../../QEMU/hw/ftl_gc_manager.h
+
+ln -s ../../FTL/DA_MAP/ftl_pm.h					../../QEMU/hw/ftl_pm.h
+ln -s ../../FTL/DA_MAP/ftl_pm_mapping_manager.h			../../QEMU/hw/ftl_pm_mapping_manager.h
+
+ln -s ../../FTL/DA_MAP/ftl_bm.h					../../QEMU/hw/ftl_bm.h
+ln -s ../../FTL/DA_MAP/ftl_bm_mapping_manager.h			../../QEMU/hw/ftl_bm_mapping_manager.h
+
+ln -s ../../SSD_MODULE/ssd_trim_manager.h			../../QEMU/hw/ssd_trim_manager.h
+ln -s ../../SSD_MODULE/ssd_io_manager.h				../../QEMU/hw/ssd_io_manager.h
+ln -s ../../SSD_MODULE/ssd_log_manager.h			../../QEMU/hw/ssd_log_manager.h
+
+ln -s ../../FIRMWARE/ssd.h					../../QEMU/hw/ssd.h
+ln -s ../../FIRMWARE/firm_buffer_manager.h			../../QEMU/hw/firm_buffer_manager.h
+
+# SOURCE FILLE
+ln -s ../../FTL/DA_MAP/ftl.c					../../QEMU/hw/ftl.c
+ln -s ../../FTL/DA_MAP/ftl_block_manager.c			../../QEMU/hw/ftl_block_manager.c
+ln -s ../../FTL/DA_MAP/ftl_inverse_mapping_manager.c		../../QEMU/hw/ftl_inverse_mapping_manager.c
+ln -s ../../FTL/DA_MAP/ftl_gc_manager.c				../../QEMU/hw/ftl_gc_manager.c
+
+ln -s ../../FTL/DA_MAP/ftl_pm.c					../../QEMU/hw/ftl_pm.c
+ln -s ../../FTL/DA_MAP/ftl_pm_mapping_manager.c			../../QEMU/hw/ftl_pm_mapping_manager.c
+
+ln -s ../../FTL/DA_MAP/ftl_bm.c					../../QEMU/hw/ftl_bm.c
+ln -s ../../FTL/DA_MAP/ftl_bm_mapping_manager.c			../../QEMU/hw/ftl_bm_mapping_manager.c
+
+ln -s ../../SSD_MODULE/ssd_trim_manager.c			../../QEMU/hw/ssd_trim_manager.c
+ln -s ../../SSD_MODULE/ssd_io_manager.c				../../QEMU/hw/ssd_io_manager.c
+ln -s ../../SSD_MODULE/ssd_log_manager.c 			../../QEMU/hw/ssd_log_manager.c
+
+ln -s ../../FIRMWARE/ssd.c					../../QEMU/hw/ssd.c
+ln -s ../../FIRMWARE/firm_buffer_manager.c			../../QEMU/hw/firm_buffer_manager.c
+
+# SSD Monitor
+ln -s ../../MONITOR/SSD_MONITOR_PM/ssd_monitor_p		../../QEMU/x86_64-softmmu/ssd_monitor
+
+# SSD_configuration setting
+ln -s ../../../CONFIG/ssd.conf					../../QEMU/x86_64-softmmu/data/ssd.conf
+ln -s ../../CONFIG/vssim_config_manager.h			../../QEMU/hw/vssim_config_manager.h
+ln -s ../../CONFIG/vssim_config_manager.c			../../QEMU/hw/vssim_config_manager.c
