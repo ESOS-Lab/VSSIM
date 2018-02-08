@@ -8,7 +8,8 @@
 #ifndef _PERF_MANAGER_H_
 #define _PERF_MANAGER_H_
 
-#define LATENCY_WINDOW	200
+#define LATENCY_WINDOW  	200
+#define UPDATE_FREQUENCY	10000
 
 typedef struct nand_io_info
 {
@@ -17,7 +18,6 @@ typedef struct nand_io_info
 	int io_page_nb;
 	int io_seq_nb;
 }nand_io_info;
-
 
 /* IO Latency */
 typedef struct io_request
@@ -58,6 +58,7 @@ void SEND_TO_PERF_CHECKER(int op_type, int64_t op_delay, int type);
 int64_t ALLOC_IO_REQUEST(int32_t sector_nb, unsigned int length, int io_type, int* page_nb);
 void FREE_DUMMY_IO_REQUEST(int type);
 void FREE_IO_REQUEST(io_request* request);
+
 int64_t UPDATE_IO_REQUEST(int request_nb, int offset, int64_t time, int type);
 void INCREASE_IO_REQUEST_SEQ_NB(void);
 io_request* LOOKUP_IO_REQUEST(int request_nb, int type);
@@ -68,4 +69,6 @@ nand_io_info* CREATE_NAND_IO_INFO(int offset, int type, int io_page_nb, int io_s
 void PRINT_IO_REQUEST(io_request* request);
 void PRINT_ALL_IO_REQUEST(void);
 
+void UPDATE_LOG(int log_type, int arg);
+void SEND_LOG_TO_MONITOR(void);
 #endif

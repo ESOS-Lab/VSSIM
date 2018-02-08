@@ -88,6 +88,15 @@ int idx_write_latency;
 int arr_read_full;
 int arr_write_full;
 
+/* Send to Monitor  */
+int64_t log_read_page_val;
+int64_t log_read_request_val;
+int64_t log_write_page_val;
+int64_t log_write_request_val;
+int64_t log_gc_amp_val;
+int64_t log_gc_call;
+int64_t log_erase_val;
+
 /* SSD Util */
 double ssd_util;
 int64_t written_page_nb;
@@ -107,7 +116,7 @@ FILE* fp_perf3_al;
 #endif
 
 void INIT_PERF_CHECKER(void){
-	
+
 	int i;
 
 	/* Average IO Time */
@@ -202,6 +211,15 @@ void INIT_PERF_CHECKER(void){
 	arr_read_full = 0;
 	arr_write_full = 0;
 
+	/* Init log variables for SSD Monitor  */
+	log_read_page_val = 0;
+	log_read_request_val = 0;
+	log_write_page_val = 0;
+	log_write_request_val = 0;
+	log_gc_amp_val = 0;
+	log_gc_call = 0;
+	log_erase_val = 0;
+
 	FILE* fp_perf = fopen("./data/perf_manager.dat", "r");
 	if(fp_perf != NULL){
 		fread(&written_page_nb, sizeof(int64_t), 1, fp_perf);
@@ -266,10 +284,6 @@ void TERM_PERF_CHECKER(void){
 void SEND_TO_PERF_CHECKER(int op_type, int64_t op_delay, int type){
 
 	double delay = (double)op_delay;
-#ifdef MONITOR_ON
-	char szTemp[1024];
-	char szUtil[1024];
-#endif
 
 	if(type == CH_OP){
 		switch(op_type){
@@ -364,10 +378,7 @@ void SEND_TO_PERF_CHECKER(int op_type, int64_t op_delay, int type){
 
 			case ERASE:
 				written_page_nb -= PAGE_NB;
-#ifdef MONITOR_ON
-				sprintf(szTemp, "ERASE %d", 1);
-				WRITE_LOG(szTemp);
-#endif
+				UPDATE_LOG(LOG_ERASE, 1);
 				break;
 
 			case GC_READ:
@@ -520,10 +531,6 @@ void SEND_TO_PERF_CHECKER(int op_type, int64_t op_delay, int type){
 					avg_read_latency = total_read_latency / LATENCY_WINDOW;
 				}
 
-#ifdef MONITOR_ON
-				sprintf(szTemp, "READ BW %lf ", GET_IO_BANDWIDTH(avg_read_latency));
-				WRITE_LOG(szTemp);
-#endif
 				break;
 			case WRITE:
 #ifdef PERF_DEBUG2
@@ -539,13 +546,6 @@ void SEND_TO_PERF_CHECKER(int op_type, int64_t op_delay, int type){
 					avg_write_latency = total_write_latency / LATENCY_WINDOW;
 				}
 
-#ifdef MONITOR_ON
-				sprintf(szTemp, "WRITE BW %lf ", GET_IO_BANDWIDTH(avg_write_latency));
-				WRITE_LOG(szTemp);
-
-				sprintf(szUtil, "UTIL %lf ", ssd_util);
-				WRITE_LOG(szUtil);
-#endif
 				break;
 			default:
 				break;
@@ -577,7 +577,7 @@ int64_t ALLOC_IO_REQUEST(int32_t sector_nb, unsigned int length, int io_type, in
 
 	io_request* curr_io_request = (io_request*)calloc(1, sizeof(io_request));
 	if(curr_io_request == NULL){
-		printf("ERROR[ALLOC_IO_REQUEST] Calloc io_request fail\n");
+		printf("ERROR[%s] Calloc io_request fail\n", __FUNCTION__);
 		return 0;
 	}
 
@@ -600,7 +600,7 @@ int64_t ALLOC_IO_REQUEST(int32_t sector_nb, unsigned int length, int io_type, in
 	int64_t* end_time_arr = (int64_t*)calloc(io_page_nb, sizeof(int64_t));
 
 	if(start_time_arr == NULL || end_time_arr == NULL){
-		printf("ERROR[ALLOC_IO_REQUEST] Calloc time array fail\n");
+		printf("ERROR[%s] Calloc time array fail\n", __FUNCTION__);
 		return 0;
 	}
 	else{
@@ -618,7 +618,7 @@ int64_t ALLOC_IO_REQUEST(int32_t sector_nb, unsigned int length, int io_type, in
 	curr_io_request->end_time = end_time_arr;
 	curr_io_request->next = NULL;
 
-	if(io_request_start == NULL && io_request_nb == 0){
+	if(io_request_start == NULL){
 		io_request_start = curr_io_request;
 		io_request_end = curr_io_request;
 	}
@@ -627,7 +627,7 @@ int64_t ALLOC_IO_REQUEST(int32_t sector_nb, unsigned int length, int io_type, in
 		io_request_end = curr_io_request;
 	}
 	io_request_nb++;
-	
+
 	int64_t end = get_usec();
 
 #ifdef PERF_DEBUG3
@@ -675,7 +675,7 @@ void FREE_DUMMY_IO_REQUEST(int type)
 
 
 	if(success == 0){
-		printf("ERROR[FREE_DUMMY_IO_REQUEST] There is no such io request\n");
+		printf("ERROR[%s] There is no such io request\n", __FUNCTION__);
 		return;
 	}
 
@@ -693,7 +693,7 @@ void FREE_IO_REQUEST(io_request* request)
 	io_request* prev_request = io_request_start;
 
 #ifdef FTL_PERF_DEBUG
-	printf("\t\t[FREE_IO_REQUEST] %d\n", request->request_nb);
+	printf("\t\t[%s] %d\n",__FUNCTION__, request->request_nb);
 #endif	
 
 	if(io_request_nb == 1){
@@ -725,7 +725,7 @@ void FREE_IO_REQUEST(io_request* request)
 	}
 
 	if(success == 0){
-		printf("ERROR[FREE_IO_REQUEST] There is no such io request\n");
+		printf("ERROR[%s] There is no such io request\n", __FUNCTION__);
 		return;
 	}
 
@@ -807,7 +807,7 @@ io_request* LOOKUP_IO_REQUEST(int request_nb, int type)
 	for(i=0;i<total_request;i++){
 		if(curr_request->request_nb == request_nb){
 #ifdef FTL_PERF_DEBUG
-			printf("[LOOKUP_IO_REQUEST] hit! %d %d\n", curr_request->request_nb, request_nb);
+			printf("[%s] hit! %d %d\n",__FUNCTION__, curr_request->request_nb, request_nb);
 #endif
 			return curr_request;
 		}
@@ -817,7 +817,7 @@ io_request* LOOKUP_IO_REQUEST(int request_nb, int type)
 		}
 		else{
 #ifdef FTL_PERF_DEBUG
-			printf("[LOOKUP_IO_REQUEST] end\n");
+			printf("[%s] end\n", __FUNCTION__);
 #endif
 
 			return NULL;
@@ -879,20 +879,20 @@ int64_t CALC_IO_LATENCY(io_request* request)
 			}
 		}
 	}
-	
+
 	if(type == WRITE){
 		arr_write_latency[idx_write_latency] = latency;
 
 		idx_write_latency++;
 		if(idx_write_latency == LATENCY_WINDOW){
 			idx_write_latency = 0;
-			
+
 			if(arr_write_full == 0){
 				arr_write_full = 1;
 			}
 		}
 	}
-
+	
 	return latency;
 }
 
@@ -951,3 +951,60 @@ void PRINT_ALL_IO_REQUEST(void)
 
 	return;
 }
+
+void UPDATE_LOG(int log_type, int arg)
+{
+	static int64_t recent_update_time = 0;
+
+	switch(log_type){
+		case LOG_READ_PAGE:
+			log_read_page_val += arg;
+			log_read_request_val++;
+			break;
+		case LOG_WRITE_PAGE:
+			log_write_page_val += arg;
+			log_write_request_val++;
+			break;
+		case LOG_GC_AMP:
+			log_gc_amp_val += arg;
+			log_gc_call++;
+			break;
+		case LOG_ERASE:
+			log_erase_val += arg;
+			break;
+		default:
+			break;
+	}
+
+	/* added to set interval between sending logs to monitor */
+	int64_t current_time = get_usec();
+	if(current_time - recent_update_time >= UPDATE_FREQUENCY){
+		recent_update_time = current_time;
+		SEND_LOG_TO_MONITOR();
+	}
+}
+
+void SEND_LOG_TO_MONITOR(void)
+{
+	char szTemp[1024];
+	sprintf(szTemp, "READ PAGE %d ", log_read_page_val);
+	WRITE_LOG(szTemp);
+	sprintf(szTemp, "READ REQ %d ", log_read_request_val);
+	WRITE_LOG(szTemp);
+	sprintf(szTemp, "WRITE PAGE %d ", log_write_page_val);
+	WRITE_LOG(szTemp);
+	sprintf(szTemp, "WRITE REQ %d ", log_write_request_val);
+	WRITE_LOG(szTemp);
+	sprintf(szTemp, "GC AMP %d", log_gc_amp_val);
+	WRITE_LOG(szTemp);
+	sprintf(szTemp, "GC CALL %d", log_gc_call);
+	WRITE_LOG(szTemp);
+	sprintf(szTemp, "ERASE %d", log_erase_val);
+	WRITE_LOG(szTemp);
+	sprintf(szTemp, "UTIL %lf ", ssd_util);
+	WRITE_LOG(szTemp);
+	sprintf(szTemp, "READ BW %lf ", GET_IO_BANDWIDTH(avg_read_latency));
+	WRITE_LOG(szTemp);
+	sprintf(szTemp, "WRITE BW %lf ", GET_IO_BANDWIDTH(avg_write_latency));
+	WRITE_LOG(szTemp);
+} 
