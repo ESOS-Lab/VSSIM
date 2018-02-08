@@ -1,3 +1,10 @@
+// File: ftl_perf_manager.c
+// Date: 2018. 02. 08.
+// Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
+// Copyright(c)2018
+// Hanyang University, Seoul, Korea
+// Embedded Software Systems Laboratory. All right reserved
+
 #include "common.h"
 #include "ftl_perf_manager.h"
 #include "ftl_config_manager.h"

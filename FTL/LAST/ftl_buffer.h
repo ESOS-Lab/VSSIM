@@ -1,3 +1,10 @@
+// File: ftl_buffer.h
+// Date: 2018. 02. 08.
+// Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
+// Copyright(c)2018
+// Hanyang University, Seoul, Korea
+// Embedded Software Systems Laboratory. All right reserved
+
 #ifndef _FTL_BUFFER_H_
 #define _FTL_BUFFER_H_
 

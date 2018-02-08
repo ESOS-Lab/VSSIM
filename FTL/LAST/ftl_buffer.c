@@ -1,3 +1,10 @@
+// File: ftl_buffer.c
+// Date: 2018. 02. 08.
+// Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
+// Copyright(c)2018
+// Hanyang University, Seoul, Korea
+// Embedded Software Systems Laboratory. All right reserved
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "common.h"
@@ -5,17 +12,13 @@
 #include "ftl_config_manager.h"
 #include "ftl.h"
 
-
 ftl_buff* g_pHead = NULL;
 ftl_buff* g_pTail = NULL;
 unsigned int g_ftl_buff_limit = 0;
 int buffer_unit_size = sizeof(ftl_buff);
 
-
 int FTL_BUFFER(int type, int64_t sector_nb, unsigned int length){
-//	printf( "[FTL_BUFFER]FTL_BUFFER_SIZE  is [%d]\n",FTL_BUFFER_SIZE);
-	/* 버퍼가 다 찼는지 검사한다.*/
-	if( g_ftl_buff_limit < FTL_BUFFER_SIZE ){ // 버퍼가 아직 사용 가능할 경우
+	if( g_ftl_buff_limit < FTL_BUFFER_SIZE ){ 
 		InsertNode( type, sector_nb, length );
 		if( type == READ ){
 			g_ftl_buff_limit += buffer_unit_size;
@@ -24,7 +27,7 @@ int FTL_BUFFER(int type, int64_t sector_nb, unsigned int length){
 		}else{
 			printf("[FTL_BUFFER][err] type is not valid\n");
 		}
-	}else{// 버퍼가 다 찬 경우
+	}else{
 		FTL_BUFFER_FLUSH();
 	}
 	return SUCCESS;
