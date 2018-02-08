@@ -1,0 +1,217 @@
+#include "common.h"
+#include "ftl.h"
+#include "ftl_config_manager.h"
+#include "ftl_mapping_manager.h"
+#include "ftl_inverse_mapping_manager.h"
+#include "ssd_io_manager.h"
+#include "ssd_log_manager.h"
+
+#ifdef DEBUG_MODE1
+FILE* fp_dbg1_r;
+FILE* fp_dbg1_w;
+#endif
+
+int g_init = 0;
+void FTL_INIT(void)
+{
+	if(g_init == 0){
+        	printf("[FTL_INIT] start\n");
+
+		INIT_SSD_CONFIG();
+		INIT_MAPPING_TABLE();
+		INIT_INVERSE_PAGE_MAPPING();
+		INIT_INVERSE_BLOCK_MAPPING();
+		INIT_VALID_ARRAY();
+		INIT_EMPTY_BLOCK_LIST();
+		INIT_VICTIM_BLOCK_LIST();
+		g_init = 1;
+
+#ifdef DEBUG_MODE1
+		fp_dbg1_r = fopen("./data/p_dbg1_r.txt","a");
+		fp_dbg1_w = fopen("./data/p_dbg1_w.txt","a");
+#endif
+
+		printf("[FTL_INIT] complete\n");
+	}
+}
+
+void FTL_TERM(void)
+{
+	printf("[FTL_TERM] start\n");
+
+	TERM_MAPPING_TABLE();
+	TERM_INVERSE_PAGE_MAPPING();
+	TERM_VALID_ARRAY();
+	TERM_INVERSE_BLOCK_MAPPING();
+	TERM_EMPTY_BLOCK_LIST();
+	TERM_VICTIM_BLOCK_LIST();
+
+#ifdef DEBUG_MODE1
+	fclose(fp_dbg1_r);
+	fclose(fp_dbg1_w);
+#endif
+
+	printf("[FTL_TERM] complete\n");
+}
+
+void FTL_READ(int64_t sector_nb, unsigned int length)
+{
+#ifdef FTL_DEBUG
+	printf("[FTL_READ] Start\n");
+#endif
+
+	char szTemp[1024];
+#ifdef MONITOR_ON
+	int64_t read_start_time = get_usec();
+#endif
+
+#ifdef DEBUG_MODE1
+	int64_t start_dbg1, end_dbg1;
+#endif
+
+	if(sector_nb + length > SECTOR_NB){
+		printf("Error[FTL_READ] Exceed Sector number\n"); 
+		return;	
+	}
+
+	unsigned int remain = length;
+	unsigned int lba = sector_nb;
+	unsigned int left_skip = sector_nb % SECTORS_PER_PAGE;
+	unsigned int right_skip;
+	unsigned int read_sects;
+
+	unsigned int phy_flash_nb;
+	unsigned int phy_block_nb;
+	unsigned int phy_page_nb;
+
+	unsigned int ret;
+
+	while(remain > 0){
+#ifdef DEBUG_MODE1
+		start_dbg1 = get_usec();
+#endif
+		if(remain > SECTORS_PER_PAGE - left_skip){
+			right_skip = 0;
+		}
+		else{
+			right_skip = SECTORS_PER_PAGE - left_skip - remain;
+		}
+		read_sects = SECTORS_PER_PAGE - left_skip - right_skip;
+
+		ret = GET_MAPPING_INFO(lba, &phy_flash_nb, &phy_block_nb, &phy_page_nb);
+
+		if(ret == FAIL){
+#ifdef FTL_DEBUG
+			printf("Error[FTL_READ] No Mapping info\n");
+#endif
+		}
+
+		ret = CELL_READ(phy_flash_nb, phy_block_nb, phy_page_nb);
+
+#ifdef FTL_DEBUG
+		if(ret == SUCCESS){
+			printf("[FTL_READ] read complete [%d, %d, %d]\n",phy_flash_nb, phy_block_nb, phy_page_nb);
+		}
+		else if(ret == FAIL){
+			printf("Error[FTL_READ] %d page read fail \n", phy_page_nb);
+		}
+#endif
+
+		lba += read_sects;
+		remain -= read_sects;
+		left_skip = 0;
+
+#ifdef DEBUG_MODE1
+		end_dbg1 = get_usec();
+		fprintf(fp_dbg1_r,"%ld\t%d\n",end_dbg1-start_dbg1, read_sects);
+#endif
+	}
+
+#ifdef MONITOR_ON
+	int64_t read_end_time = get_usec();
+	sprintf(szTemp, "READ %ld %ld %d %ld ", read_end_time - read_start_time, sector_nb, length, read_start_time);
+	WRITE_LOG(szTemp);
+#endif
+
+}
+
+void FTL_WRITE(int64_t sector_nb, unsigned int length)
+{
+#ifdef FTL_DEBUG
+	printf("[FTL_WRITE] Start\n");
+#endif
+
+	char szTemp[1024];
+#ifdef MONITOR_ON
+	int64_t write_start_time = get_usec();
+#endif
+
+#ifdef DEBUG_MODE1
+	int64_t start_dbg1, end_dbg1;
+#endif
+
+	if(sector_nb + length > SECTOR_NB){
+		printf("Error[FTL_WRITE] Exceed Sector number\n");
+                return;
+        }
+
+	unsigned int remain = length;
+	unsigned int lba = sector_nb;
+	unsigned int left_skip = sector_nb % SECTORS_PER_PAGE;
+	unsigned int right_skip;
+	unsigned int write_sects;
+
+	unsigned int new_phy_flash_nb;
+	unsigned int new_phy_block_nb;
+	unsigned int new_phy_page_nb;
+
+	unsigned int ret;
+
+
+	while(remain > 0){
+
+#ifdef DEBUG_MODE1
+		start_dbg1 = get_usec();
+#endif
+		if(remain > SECTORS_PER_PAGE - left_skip){
+			right_skip = 0;
+		}
+		else{
+			right_skip = SECTORS_PER_PAGE - left_skip - remain;
+		}
+		write_sects = SECTORS_PER_PAGE - left_skip - right_skip;
+
+		ret = GET_NEW_PAGE(&new_phy_flash_nb, &new_phy_block_nb, &new_phy_page_nb);
+
+		if(ret == FAIL){
+			printf("Error[FTL_WRITE] Get new page fail \n");
+			return;
+		}
+
+		ret = CELL_WRITE(new_phy_flash_nb, new_phy_block_nb, new_phy_page_nb);
+
+		UPDATE_OLD_PAGE_MAPPING(lba);
+		UPDATE_NEW_PAGE_MAPPING(lba, new_phy_flash_nb, new_phy_block_nb, new_phy_page_nb);
+#ifdef FTL_DEBUG
+                if(ret == SUCCESS){
+                        printf("[FTL_WRITE] write complete [%d, %d, %d]\n",new_phy_flash_nb, new_phy_block_nb,new_phy_page_nb);
+                }
+                else if(ret == FAIL){
+                        printf("Error[FTL_WRITE] %d page write fail \n", new_phy_page_nb);
+                }
+#endif
+		lba += write_sects;
+		remain -= write_sects;
+		left_skip = 0;
+
+#ifdef DEBUG_MODE1
+		end_dbg1 = get_usec();
+		fprintf(fp_dbg1_w,"%ld\t%d\n",end_dbg1-start_dbg1,write_sects);
+#endif
+	}
+#ifdef MONITOR_ON
+	int64_t write_end_time = get_usec();
+	sprintf(szTemp, "WRITE %ld %ld %d %ld", write_end_time - write_start_time, sector_nb, length, write_start_time);
+	WRITE_LOG(szTemp);
+#endif
+}

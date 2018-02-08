@@ -1,0 +1,29 @@
+##
+## Modified for VSSIM simulator
+## Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
+##
+## Hystory
+## 18-Sep-2017: Add vssim object files
+
+common-obj-y += block.o cdrom.o hd-geometry.o
+common-obj-$(CONFIG_FDC) += fdc.o
+common-obj-$(CONFIG_SSI_M25P80) += m25p80.o
+common-obj-$(CONFIG_NAND) += nand.o
+common-obj-$(CONFIG_PFLASH_CFI01) += pflash_cfi01.o
+common-obj-$(CONFIG_PFLASH_CFI02) += pflash_cfi02.o
+common-obj-$(CONFIG_XEN) += xen_disk.o
+common-obj-$(CONFIG_ECC) += ecc.o
+common-obj-$(CONFIG_ONENAND) += onenand.o
+common-obj-$(CONFIG_NVME_PCI) += nvme.o
+
+# 18-Sep-2017: Added by Jinsoo Yoo
+common-obj-$(CONFIG_NVME_PCI) += ssd.o common.o bitmap.o vssim_config_manager.o vssim_core.o\
+                ftl.o ftl_mapping_manager.o ftl_flash_manager.o \
+                ftl_gc_manager.o ftl_perf_manager.o ftl_cache.o \
+                ssd.o ssd_log_manager.o flash_memory.o \
+                firm_buffer_manager.o
+
+obj-$(CONFIG_SH4) += tc58128.o
+
+obj-$(CONFIG_VIRTIO) += virtio-blk.o
+obj-$(CONFIG_VIRTIO) += dataplane/

@@ -1,0 +1,57 @@
+if ARCH_MX6
+
+config MX6
+	bool
+	default y
+
+config MX6D
+	bool
+
+config MX6DL
+	bool
+
+config MX6Q
+	bool
+
+config MX6QDL
+	bool
+
+config MX6S
+	bool
+
+config MX6SL
+	bool
+
+config MX6SX
+	bool
+
+config MX6UL
+	select SYS_L2CACHE_OFF
+	bool
+
+choice
+	prompt "MX6 board select"
+	optional
+
+config TARGET_CM_FX6
+	bool "Support CM-FX6"
+	select SUPPORT_SPL
+	select DM
+	select DM_SERIAL
+	select DM_GPIO
+
+config TARGET_SECOMX6
+	bool "Support secomx6 boards"
+
+config TARGET_TQMA6
+	bool "TQ Systems TQMa6 board"
+
+endchoice
+
+config SYS_SOC
+	default "mx6"
+
+source "board/seco/Kconfig"
+source "board/tqc/tqma6/Kconfig"
+
+endif
