@@ -27,7 +27,8 @@
  * Author: Jinsoo Yoo (jedisty@hanyang.ac.kr)
  *
  * Hystory
- * 08-Feb-2018: Add vssim.h, ssd.h header
+ * 08-Feb-2018: Add vssim.h, ssd.h header, Add SSD_TERM() function call to 
+ *              main_loop_should_exit()
  */
 
 
