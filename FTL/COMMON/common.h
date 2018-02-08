@@ -162,6 +162,11 @@
 #define UPDATE_END_TIME		901
 #define UPDATE_GC_START_TIME	902
 #define UPDATE_GC_END_TIME	903
+#define LOG_READ_PAGE		904
+#define LOG_WRITE_PAGE		905
+#define LOG_GC_CALL		906
+#define LOG_GC_AMP		907
+#define LOG_ERASE		908
 
 /* VSSIM Function Debug */
 #define MNT_DEBUG			// MONITOR Debugging
