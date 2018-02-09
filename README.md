@@ -197,6 +197,15 @@ This section explains the entire process of actually compiling VSSIM and making 
     ※ Port number that was set could be in use in other applications. Change the port number and try executing. (ex, 9990~9998) 
 
 
+ToDo List
+-----
+We welcome your contributions to this project
+
+- [ ] Hybrid FTLs (FAST, LAST) modification for the current SSD moudle
+- [ ] Block FTL modification for the current SSD modoule
+- [ ] SSD_MONITOR_HYBRID supports QT4 or Later
+
+
 Course Material
 -----
 VSSIM is designed to be used as an excellent experiment platform to study the various aspects of an SSD. We provide several labs to help the instructor lead the class. VSSIM is open source and you are welcome to share the lab materials which you have developed. 
@@ -214,9 +223,3 @@ Configure 8 channel, 2 way SSD. Page size is 4 KByte. NAND Latency is set to 300
     6. Discuss the effect the channel and way parallelism over SSD performance and its implication on host performance. 
 
 
-Future Works
------
-There are several works to do such as porting Hybrid FTLs to SSD Module. Welcome to join us to develop VSSIM!
-
-    1. In FTL directory, there are source codes for Hybrid FTLs. It is needed that the SSD IO interface should be modified to work with current SSD Module.
-    2. The source codes in SSD\_MONITOR\_HYBRID directory are developed based on QT3. It needs to support QT4 or later version.
