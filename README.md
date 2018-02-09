@@ -199,11 +199,11 @@ This section explains the entire process of actually compiling VSSIM and making 
 
 ToDo List
 -----
-We welcome your contributions to this project
+We welcome your contributions to this project.
 
 - [ ] Hybrid FTLs (FAST, LAST) modification for the current SSD moudle
 - [ ] Block FTL modification for the current SSD modoule
-- [ ] SSD_MONITOR_HYBRID supports QT4 or Later
+- [ ] SSD_MONITOR_HYBRID modification for supporting QT4 or Later
 
 
 Course Material
