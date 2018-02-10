@@ -251,6 +251,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					cur_plane->cmd = next_cmd;
 				}
 			}
+
 			break;
 
 		case SET_CMD1:
@@ -1023,12 +1024,13 @@ int64_t GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(int channel_nb, int64_t t_now,
 }
 
 
-void WAIT_FLASH_IO(int core_id, int n_io_pages)
+void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages)
 {
 	int n_completed_pages = 0;
 
 //TEMP
-//	printf("[%s] State %d core: n_io_pages %d\n", __FUNCTION__, core_id, n_io_pages);
+	FILE* fp_io = fopen("./META/io.dat", "a");
+	int64_t start = get_usec();
 
 	/* Wait all inflight Flash IOs */
 	while(n_completed_pages != n_io_pages){
@@ -1036,12 +1038,14 @@ void WAIT_FLASH_IO(int core_id, int n_io_pages)
 		n_completed_pages += FLASH_STATE_CHECKER(core_id);
 
 		usleep(2);
-//TEMP	
-//		printf("\t [%s] %d core: %d / %d\n", __FUNCTION__, core_id, n_completed_pages, n_io_pages);
 	}
 
 //TEMP
-//	printf("[%s] Completed %d core: n_io_pages %d\n", __FUNCTION__, core_id, n_io_pages);
+	int64_t end = get_usec();
+	if(n_io_pages > 0){
+		fprintf(fp_io, "%d\t%d\t%lu\n", io_type, n_io_pages, end-start);
+	}
+	fclose(fp_io);
 
 	return;
 }

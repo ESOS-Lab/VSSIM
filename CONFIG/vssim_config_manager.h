@@ -42,8 +42,6 @@ extern int SECTORS_PER_4K_PAGE;
 /* Mapping Table */
 extern int64_t N_TOTAL_PAGES;
 extern int64_t N_TOTAL_BLOCKS;
-extern int64_t N_PER_CORE_TOTAL_PAGES;
-extern int64_t N_PER_CORE_TOTAL_BLOCKS;
 
 /* NAND Flash Delay */
 extern int REG_CMD_SET_DELAY;

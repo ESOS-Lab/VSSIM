@@ -764,9 +764,10 @@ void DO_PER_CORE_READ(int core_id)
 		r_queue->tail = NULL;
 	}
 
-//TEMP
-//	printf("[%s] core %d: %lu-th event dequeue\n",
-//			__FUNCTION__, core_id, cr_entry->parent->seq_nb);
+#ifdef IO_CORE_DEBUG
+	printf("[%s] core %d: %lu-th event dequeue\n",
+			__FUNCTION__, core_id, cr_entry->parent->seq_nb);
+#endif
 
 	pthread_mutex_unlock(&r_queue->lock);
 
@@ -823,9 +824,10 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 		cur_w_queue->head = cr_entry->next;
 		cur_w_queue->entry_nb--;
 
-//TEMP
-//		printf("[%s] core %d: %lu-th event dequeue\n",
-//			__FUNCTION__, core_id, cr_entry->parent->seq_nb);
+#ifdef IO_CORE_DEBUG
+		printf("[%s] core %d: %lu-th event dequeue\n",
+			__FUNCTION__, core_id, cr_entry->parent->seq_nb);
+#endif
 
 		/* Write data to Flash memory */
 		FTL_WRITE(core_id, cr_entry->sector_nb, cr_entry->length);

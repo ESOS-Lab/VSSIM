@@ -63,6 +63,7 @@ typedef struct flash_info
 {
 	int core_id;
 	int flash_nb;
+	int local_flash_nb;
 	plane_info* plane_i;
 	struct flash_info* next_flash;
 	uint16_t plane_index;
@@ -72,13 +73,13 @@ typedef struct flash_info
 
 extern flash_info* flash_i;
 
-void INIT_FLASH_INFO(void);
-void INIT_PLANE_INFO(void);
-void INIT_INVERSE_MAPPING_TABLE(void);
-void INIT_BLOCK_STATE_TABLE(void);
-void INIT_EMPTY_BLOCK_LIST(void);
-void INIT_VICTIM_BLOCK_LIST(void);
-void INIT_VALID_ARRAY(void);
+int INIT_FLASH_INFO(int init_info);
+int INIT_PLANE_INFO(int init_info);
+int INIT_INVERSE_MAPPING_TABLE(int init_info);
+int INIT_BLOCK_STATE_TABLE(int init_info);
+int INIT_EMPTY_BLOCK_LIST(int init_info);
+int INIT_VICTIM_BLOCK_LIST(int init_info);
+int INIT_VALID_ARRAY(int init_info);
 
 void TERM_FLASH_INFO(void);
 void TERM_PLANE_INFO(void);

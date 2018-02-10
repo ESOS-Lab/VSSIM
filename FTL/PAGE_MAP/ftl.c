@@ -10,21 +10,32 @@
 int g_init = 0;
 extern double ssd_util;
 
+/* return value of each init function 
+ * 	-1: return FAIL
+ *	 0: First boot
+ *	 1: Initialize from metadata files
+ */
 void FTL_INIT(void)
 {
+	int ret; 
+
 	if(g_init == 0){
         	printf("[%s] start\n", __FUNCTION__);
 
 		INIT_SSD_CONFIG();
 
-		INIT_MAPPING_TABLE();
-		INIT_PERF_CHECKER();
-		
-#ifdef FIRM_IO_BUFFER
+		ret = INIT_PERF_CHECKER();
+		if(ret == -1) goto fail;
+	
 		INIT_IO_BUFFER();
-#endif
-		INIT_FLASH_INFO();
+
+		ret = INIT_FLASH_INFO(ret);
+		if(ret == -1) goto fail;
+
 		INIT_VSSIM_CORE();	/* Init Flash -> Init Core */
+
+		ret = INIT_MAPPING_TABLE(ret); /* Init Core -> Init Mapping */
+		if(ret == -1) goto fail;
 
 #ifdef MONITOR_ON
 		INIT_LOG_MANAGER();
@@ -32,7 +43,14 @@ void FTL_INIT(void)
 		INIT_FLASH();
 	
 		g_init = 1;
+
 		printf("[%s] complete\n", __FUNCTION__);
+		return;
+
+fail:
+		printf("[%s] init fail\n", __FUNCTION__);
+		TERM_VSSIM_CORE();
+		return;	
 	}
 }
 
@@ -40,16 +58,15 @@ void FTL_TERM(void)
 {
 	printf("[%s] start\n", __FUNCTION__);
 
-#ifdef FIRM_IO_BUFFER
 	TERM_IO_BUFFER();
-#endif
+
+	TERM_MAPPING_TABLE(); /* Term mapping -> Term core */
 
 	TERM_VSSIM_CORE();
 	TERM_FLASH_INFO();
 
 	TERM_PERF_CHECKER();
 
-	TERM_MAPPING_TABLE();
 
 #ifdef MONITOR_ON
 	TERM_LOG_MANAGER();
@@ -208,8 +225,11 @@ int _FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)
 		left_skip = 0;
 	}
 
+//TEMP
+//	printf("[%s] wait IO ... %d\n", __FUNCTION__, n_read_pages);
+
 	/* Wait until all flash io are completed */
-	WAIT_FLASH_IO(core_id, n_read_pages);
+	WAIT_FLASH_IO(core_id, READ, n_read_pages);
 
 #ifdef FTL_DEBUG
 	printf("[%s] Complete\n", __FUNCTION__);
@@ -262,6 +282,11 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 
 		ret = GET_NEW_PAGE(core_id, temp_pbn, MODE_OVERALL, &new_ppn);
 
+//TEMP
+		if(core_id == 2 && new_ppn.addr == 0){
+			printf("!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+		}
+
 		if(ret == FAIL){
 			printf("ERROR[%s] Get new page fail \n", __FUNCTION__);
 			return FAIL;
@@ -294,7 +319,7 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 	}
 
 	/* Wait until all flash io are completed */
-	WAIT_FLASH_IO(core_id, n_write_pages);
+	WAIT_FLASH_IO(core_id, WRITE, n_write_pages);
 
 #ifdef FTL_DEBUG
 	printf("[%s] End\n", __FUNCTION__);

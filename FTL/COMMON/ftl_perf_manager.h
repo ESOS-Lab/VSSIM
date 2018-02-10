@@ -25,7 +25,7 @@ enum vssim_perf_type{
 
 double GET_IO_BANDWIDTH(uint64_t n_pages, uint64_t latency);
 
-void INIT_PERF_CHECKER(void);
+int INIT_PERF_CHECKER(void);
 void TERM_PERF_CHECKER(void);
 
 void INSERT_IO_BANDWIDTH_INFO(int io_type, uint32_t n_pages, int64_t latency);

@@ -130,9 +130,11 @@ void END_SSD_NVME_RW(event_queue_entry* eq_entry)
 	int io_type = eq_entry->io_type;
 	enum event_state e_state = eq_entry->e_state; 	
 
+#ifdef MONITOR_ON
 	int64_t t_start = eq_entry->t_start;
 	int64_t t_end = 0;
 	uint32_t n_pages = eq_entry->n_pages;
+#endif
 
 	/* Wait until the vssim IO process is completed */
 	

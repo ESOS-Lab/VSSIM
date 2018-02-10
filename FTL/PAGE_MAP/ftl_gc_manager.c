@@ -103,6 +103,8 @@ void CHECK_EMPTY_BLOCKS(int core_id, pbn_t pbn)
 	int n_empty_blocks = 0;
 
 	/* Get information of the flash and the plane */
+	vssim_core* cur_core = &vs_core[core_id];
+
 	flash_info* cur_flash = &flash_i[flash_nb];
 	plane_info* cur_plane = &cur_flash->plane_i[plane_nb];
 
@@ -121,10 +123,10 @@ void CHECK_EMPTY_BLOCKS(int core_id, pbn_t pbn)
 
 	/* Check GC threshold of the Flash */
 	
-	if(n_empty_blocks <= N_GC_LOW_WATERMARK_BLOCKS){
+	if(n_empty_blocks <= cur_core->n_gc_low_watermark_blocks){
 		UPDATE_PLANE_STATE(core_id, cur_plane, NEED_BGGC);
 	}
-	else if(n_empty_blocks <= N_GC_HIGH_WATERMARK_BLOCKS){
+	else if(n_empty_blocks <= cur_core->n_gc_high_watermark_blocks){
 		UPDATE_PLANE_STATE(core_id, cur_plane, NEED_FGGC);
 	}
 	else{
@@ -226,7 +228,7 @@ int GARBAGE_COLLECTION(block_entry* victim_entry)
 	}
 
 	/* Wait until all flash io are completed */
-	WAIT_FLASH_IO(core_id, n_copies);
+	WAIT_FLASH_IO(core_id, WRITE, n_copies);
 
 	/* Erase the victim Flash block */
 	FLASH_BLOCK_ERASE(victim_pbn);

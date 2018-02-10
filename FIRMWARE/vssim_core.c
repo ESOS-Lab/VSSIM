@@ -87,6 +87,38 @@ void INIT_VSSIM_CORE(void)
 			vs_core[i].n_fggc_planes = 0;
 			pthread_mutex_init(&vs_core[i].n_fggc_lock, NULL);
 
+			/* Init GC watermark */
+		        if(gc_mode == CORE_GC){
+
+		                /* Carculate GC Threhold for SSD */
+				vs_core[i].n_gc_low_watermark_blocks =
+	                	                (int)((double)vs_core[i].n_total_blocks
+        	                	        * (1-GC_LOW_WATERMARK_RATIO));
+	                	vs_core[i].n_gc_high_watermark_blocks =
+		                                (int)((double)vs_core[i].n_total_blocks
+        		                        * (1-GC_HIGH_WATERMARK_RATIO));
+		        }
+			else if(gc_mode == FLASH_GC){
+
+				/* Carculate GC Threhold for Flash */
+				vs_core[i].n_gc_low_watermark_blocks =
+						(int)((double)N_BLOCKS_PER_FLASH
+						* (1-GC_LOW_WATERMARK_RATIO));
+				vs_core[i].n_gc_high_watermark_blocks =
+						(int)((double)N_BLOCKS_PER_FLASH
+						* (1-GC_HIGH_WATERMARK_RATIO));
+				}
+			else if(gc_mode == PLANE_GC){
+
+		                /* Carculate GC Threhold for Plane */
+				vs_core[i].n_gc_low_watermark_blocks =
+						(int)((double)N_BLOCKS_PER_PLANE
+						* (1-GC_LOW_WATERMARK_RATIO));
+				vs_core[i].n_gc_high_watermark_blocks =
+						(int)((double)N_BLOCKS_PER_PLANE
+						* (1-GC_HIGH_WATERMARK_RATIO));
+			}
+
 			/* Init lock variable for per core GC */
 			pthread_mutex_init(&vs_core[i].gc_lock, NULL);
 
@@ -128,9 +160,11 @@ void INIT_VSSIM_CORE(void)
 		thread_id++;
 	}
 
-	/* Create the Background GC thread */
-	pthread_create(&vssim_thread_id[index], NULL, 
-				BACKGROUND_GC_THREAD_MAIN_LOOP, NULL);
+	if(BACKGROUND_GC_ENABLE){
+		/* Create the Background GC thread */
+		pthread_create(&vssim_thread_id[index], NULL, 
+					BACKGROUND_GC_THREAD_MAIN_LOOP, NULL);
+	}
 }
 
 void INIT_PER_CORE_REQUEST_QUEUE(core_req_queue* cr_queue)
@@ -144,14 +178,24 @@ void INIT_PER_CORE_REQUEST_QUEUE(core_req_queue* cr_queue)
 void INIT_FLASH_LIST(int core_id)
 {
 	int i;
+	int local_flash_nb = 0;
 
 	/* Get flash info header for the core */
 	flash_info* cur_flash = &flash_i[core_id];
 	int cur_flash_index = core_id;
+
+	/* Allocate local flash nb */
+	cur_flash->local_flash_nb = local_flash_nb;
+	local_flash_nb++;
 	
 	/* Update the flash list */
-	vs_core[core_id].flash_i = cur_flash;
-	
+	vssim_core* cur_core = &vs_core[core_id];
+
+	cur_core->flash_i = cur_flash;
+	cur_core->n_flash = 1;
+	cur_core->n_total_pages = N_PAGES_PER_FLASH;
+	cur_core->n_total_blocks = N_BLOCKS_PER_FLASH;
+
 	while (1){
 
 		/* Update the global metadata */
@@ -173,8 +217,16 @@ void INIT_FLASH_LIST(int core_id)
 			break;
 		}
 		else{
+
 			cur_flash->next_flash = &flash_i[cur_flash_index];
 			cur_flash = cur_flash->next_flash;
+			cur_flash->local_flash_nb = local_flash_nb;
+
+			local_flash_nb++;
+
+			cur_core->n_total_pages += N_PAGES_PER_FLASH;
+			cur_core->n_total_blocks += N_BLOCKS_PER_FLASH;
+			cur_core->n_flash++;
 		}
 	}
 }
@@ -327,6 +379,29 @@ next_gc:
 	return NULL;
 }
 
+int64_t GET_LOCAL_LPN(int64_t lpn, int* core_id)
+{
+	int64_t local_lpn;
+	int channel_nb = lpn % N_CHANNELS;
+
+	int64_t flash_nb;
+	int local_flash_nb;
+	int n_flash;
+	int64_t n_iter;
+
+	*core_id = channel_nb % N_IO_CORES;
+	n_flash = vs_core[*core_id].n_flash;
+
+	flash_nb = lpn % N_FLASH;
+	n_iter = lpn / N_FLASH;
+
+	local_flash_nb = flash_i[flash_nb].local_flash_nb;
+
+	local_lpn = local_flash_nb + n_flash * n_iter;
+
+	return local_lpn;
+}
+
 void INSERT_NEW_PER_CORE_REQUEST(int core_id, event_queue_entry* eq_entry, 
 			uint64_t sector_nb, uint32_t length, int w_buf_index)
 {
@@ -414,14 +489,13 @@ void INSERT_RW_TO_PER_CORE_EVENT_QUEUE(event_queue_entry* eq_entry, int w_buf_in
 
 		/* Get the core index */
 		lpn = sector_nb / SECTORS_PER_PAGE;
-		core_id = lpn % N_IO_CORES;
 		
 		/* Translate the global sector number to the local sector 
 			number. For the single IO core, the local sector 
 			number has same value with the global sector number */
-		local_lpn = lpn / N_IO_CORES;
-		local_sector_nb = sector_nb - (local_lpn * SECTORS_PER_PAGE \
-				* (N_IO_CORES -1) + core_id * SECTORS_PER_PAGE); 
+		local_lpn = GET_LOCAL_LPN(lpn, &core_id);
+
+		local_sector_nb = local_lpn * SECTORS_PER_PAGE + left_skip;
 
 		if(!per_core_io_flag[core_id]){
 			per_core_sector_nb[core_id] = local_sector_nb;
@@ -513,9 +587,9 @@ void INSERT_DISCARD_TO_PER_CORE_EVENT_QUEUE(event_queue_entry* eq_entry)
 			/* Translate the global sector number to the local sector 
 				number. For the single IO core, the local sector 
 				number has same value with the global sector number */
-			local_lpn = lpn / N_IO_CORES;
-			local_sector_nb = sector_nb - (local_lpn * SECTORS_PER_PAGE \
-					* (N_IO_CORES -1) + core_id * SECTORS_PER_PAGE); 
+			local_lpn = GET_LOCAL_LPN(lpn, &core_id);
+
+			local_sector_nb = local_lpn * SECTORS_PER_PAGE + left_skip;
 
 			if(!per_core_io_flag[core_id]){
 				per_core_sector_nb[core_id] = local_sector_nb;
@@ -622,10 +696,11 @@ void END_PER_CORE_READ_REQUEST(core_req_entry* cr_entry)
 
 	parent_event->n_completed++;
 
-//TEMP
-//	printf("[%s] end %lu-th event %d / %d (io_type %d)\n",
-//		__FUNCTION__, parent_event->seq_nb, parent_event->n_completed,
-//		parent_event->n_child, READ);
+#ifdef IO_CORE_DEBUG  
+	printf("[%s] end %lu-th event %d / %d (io_type %d)\n",
+		__FUNCTION__, parent_event->seq_nb, parent_event->n_completed,
+		parent_event->n_child, READ);
+#endif
 
 	if(is_trimmed){
 		parent_event->n_trimmed++;
@@ -655,10 +730,11 @@ void END_PER_CORE_WRITE_REQUEST(core_req_entry* cr_entry, int w_buf_index)
 
 		parent_event->n_completed++;
 
-//TEMP
-//		printf("[%s] end %lu-th event %d / %d (io_type %d)\n",
-//		__FUNCTION__, parent_event->seq_nb, parent_event->n_completed,
-//		parent_event->n_child, WRITE);
+#ifdef IO_CORE_DEBUG  
+		printf("[%s] end %lu-th event %d / %d (io_type %d)\n",
+		__FUNCTION__, parent_event->seq_nb, parent_event->n_completed,
+		parent_event->n_child, WRITE);
+#endif
 	
 		if(parent_event->n_child == parent_event->n_completed){
 

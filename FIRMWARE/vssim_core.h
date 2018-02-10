@@ -43,15 +43,24 @@ typedef struct vssim_core
 	core_req_queue discard_queue;
 
 	int flash_index;
+	int n_flash;
 	flash_info* flash_i;
 
 	/* the number of bggc candidate planes */
 	uint32_t n_bggc_planes;
 	pthread_mutex_t n_bggc_lock;
 
+	/* the number of pages, blocks for this core */
+	int64_t n_total_pages;
+	int64_t n_total_blocks;
+
 	/* the number of fggc candidate planes */
 	uint32_t n_fggc_planes;
 	pthread_mutex_t n_fggc_lock;
+
+	/* watermark for GC */
+	uint32_t n_gc_low_watermark_blocks;
+	uint32_t n_gc_high_watermark_blocks;
 	
 	/* lock for per core GC */
 	pthread_mutex_t gc_lock;
@@ -86,6 +95,7 @@ void *SSD_IO_THREAD_MAIN_LOOP(void *arg);
 void *BACKGROUND_GC_THREAD_MAIN_LOOP(void *arg);
 
 /* IO Buffer Processing */
+int64_t GET_LOCAL_LPN(int64_t lpn, int* core_id);
 void INSERT_NEW_PER_CORE_REQUEST(int core_id, event_queue_entry* eq_entry, 
 			uint64_t sector_nb, uint32_t length, int w_buf_index);
 void INSERT_RW_TO_PER_CORE_EVENT_QUEUE(event_queue_entry* eq_entry, 

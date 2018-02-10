@@ -93,5 +93,5 @@ int64_t BUSY_WAITING_USEC(int64_t t_end);
 int64_t GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(int channel_nb, 
 		int64_t t_now, uint8_t cmd, enum reg_state cur_state);
 
-void WAIT_FLASH_IO(int core_id, int n_io_pages);
+void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages);
 #endif

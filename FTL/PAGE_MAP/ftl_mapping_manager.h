@@ -10,7 +10,7 @@
 
 extern ppn_t** mapping_table;
 
-void INIT_MAPPING_TABLE(void);
+int INIT_MAPPING_TABLE(int init_info);
 void TERM_MAPPING_TABLE(void);
 
 ppn_t GET_MAPPING_INFO(int core_id, int64_t lpn);

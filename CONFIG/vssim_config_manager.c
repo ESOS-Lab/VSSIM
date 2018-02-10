@@ -39,8 +39,6 @@ int SECTORS_PER_4K_PAGE;
 /* Mapping Table */
 int64_t N_TOTAL_PAGES;
 int64_t N_TOTAL_BLOCKS;
-int64_t N_PER_CORE_TOTAL_PAGES;
-int64_t N_PER_CORE_TOTAL_BLOCKS;
 
 /* NAND Flash Delay */
 int REG_WRITE_DELAY;
@@ -58,8 +56,6 @@ enum vssim_gc_mode gc_mode;
 
 double GC_LOW_WATERMARK_RATIO;
 double GC_HIGH_WATERMARK_RATIO;
-int N_GC_LOW_WATERMARK_BLOCKS;
-int N_GC_HIGH_WATERMARK_BLOCKS;
 
 /* Write Buffer */
 uint32_t WRITE_BUFFER_SIZE_KB;		// 8192 for 4MB with 512B Sector size
@@ -223,7 +219,6 @@ void INIT_SSD_CONFIG(void)
 					printf("ERROR[%s] Read %s fail\n", __FUNCTION__, szCommand);
 				}
 			}
-#ifdef FIRM_IO_BUFFER
 			else if(strcmp(szCommand, "WRITE_BUFFER_SIZE_KB") == 0)
 			{
 				ret = fscanf(pfData, "%u", &WRITE_BUFFER_SIZE_KB);
@@ -238,7 +233,6 @@ void INIT_SSD_CONFIG(void)
 					printf("ERROR[%s] Read %s fail\n", __FUNCTION__, szCommand);
 				}
 			}
-#endif
 			else if(strcmp(szCommand, "GC_MODE") == 0)
 			{
 				ret = fscanf(pfData, "%s", GC_MODE);
@@ -319,17 +313,6 @@ void INIT_SSD_CONFIG(void)
 	N_DISCARD_BUF_SECTORS = N_CHANNELS * N_WAYS * N_PLANES_PER_FLASH
                                         * SECTORS_PER_PAGE;
 
-	/* Mapping Table */
-	N_PER_CORE_TOTAL_PAGES = N_TOTAL_PAGES / N_IO_CORES;
-	if(N_TOTAL_PAGES % N_IO_CORES){
-		N_PER_CORE_TOTAL_PAGES += 1;
-	}
-
-	N_PER_CORE_TOTAL_BLOCKS = N_TOTAL_BLOCKS / N_IO_CORES;
-	if(N_TOTAL_BLOCKS % N_IO_CORES){
-		N_PER_CORE_TOTAL_BLOCKS += 1;
-	}
-
 	/* Set Garbage Collection related Global variables */
 
 	/* Garbage Collection Threshold */
@@ -344,36 +327,12 @@ void INIT_SSD_CONFIG(void)
 	/* Set Garbage collection mode */
 	if(strcmp(GC_MODE, "CORE_GC") == 0){
 		gc_mode = CORE_GC;
-
-		/* Carculate GC Threhold for SSD */
-		N_GC_LOW_WATERMARK_BLOCKS = 
-				(int)((double)N_PER_CORE_TOTAL_BLOCKS 
-				* (1-GC_LOW_WATERMARK_RATIO));
-		N_GC_HIGH_WATERMARK_BLOCKS = 
-				(int)((double)N_PER_CORE_TOTAL_BLOCKS 
-				* (1-GC_HIGH_WATERMARK_RATIO));
 	}
 	else if(strcmp(GC_MODE, "FLASH_GC") == 0){
 		gc_mode = FLASH_GC;
-
-		/* Carculate GC Threhold for Flash */
-		N_GC_LOW_WATERMARK_BLOCKS = 
-				(int)((double)N_BLOCKS_PER_FLASH 
-				* (1-GC_LOW_WATERMARK_RATIO));
-		N_GC_HIGH_WATERMARK_BLOCKS = 
-				(int)((double)N_BLOCKS_PER_FLASH 
-				* (1-GC_HIGH_WATERMARK_RATIO));
 	}
 	else if(strcmp(GC_MODE, "PLANE_GC") == 0){
 		gc_mode = PLANE_GC;
-		
-		/* Carculate GC Threhold for Plane */
-		N_GC_LOW_WATERMARK_BLOCKS = 
-				(int)((double)N_BLOCKS_PER_PLANE
-				* (1-GC_LOW_WATERMARK_RATIO));
-		N_GC_HIGH_WATERMARK_BLOCKS = 
-				(int)((double)N_BLOCKS_PER_PLANE
-				* (1-GC_HIGH_WATERMARK_RATIO));
 	}
 	else{
 		printf("ERROR[%s] Wrong GC mode, FLASH_GC mode is enabled.\n",

@@ -26,7 +26,6 @@
 /* FTL */
 /* VSSIM Function */
 #define MONITOR_ON
-#define FIRM_IO_BUFFER		/* SSD Read/Write Buffer ON */
 //#define FTL_MAP_CACHE		/* FTL MAP Cache for PAGE MAP */
 
 /* HEADER - VSSIM CONFIGURATION */
@@ -86,29 +85,16 @@ int64_t get_usec(void);
 
 /* VSSIM Function Debug */
 #define MNT_DEBUG			// MONITOR Debugging
-//#define WRITE_BUFFER_DEBUG		// WRITE BUFFER Debugging 
-//#define FTL_CACHE_DEBUG		// CACHE Debugging
-//#define IO_LATENCY_DEBUG		// ??
 
 /* Workload */
-//#define GET_FTL_WORKLOAD
-//#define FTL_GET_WRITE_WORKLOAD
 
 /* FTL Debugging */
-//#define FTL_DEBUG
-//#define FTL_PERF_DEBUG
-//#define FTL_IO_LATENCY
 
 /* FTL Perf Debug */
-//#define PERF_DEBUG1
-//#define PERF_DEBUG2
-//#define PERF_DEBUG4
 
 /* SSD Debugging */
-//#define SSD_DEBUG
-//#define SSD_SYNC
 
 /* FIRMWARE Debugging */
-//#define FIRM_IO_BUF_DEBUG
+//#define IO_CORE_DEBUG
 
 #endif // end of 'ifndef _COMMON_H_'

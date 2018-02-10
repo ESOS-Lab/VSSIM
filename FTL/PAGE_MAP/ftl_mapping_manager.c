@@ -9,47 +9,72 @@
 
 ppn_t** mapping_table;
 
-void INIT_MAPPING_TABLE(void)
+int INIT_MAPPING_TABLE(int init_info)
 {
 	int i;
 	int ret;
 
+	int64_t n_total_pages;
+
 	/* Allocation Memory for Mapping Table */
 	mapping_table = (ppn_t**)calloc(sizeof(ppn_t*), N_IO_CORES);
 	for(i=0; i<N_IO_CORES; i++){
+
+		n_total_pages = vs_core[i].n_total_pages;
+
 		mapping_table[i] = (ppn_t*)calloc(sizeof(ppn_t),
-				N_PER_CORE_TOTAL_PAGES);
+				n_total_pages);
 		if(mapping_table[i] == NULL){
 			printf("ERROR[%s] Calloc mapping table fail\n", __FUNCTION__);
-			return;
+			return -1;
 		}
 	}	
 
 	/* Initialization Mapping Table */
 	
 	/* If mapping_table.dat file exists */
-	FILE* fp = fopen("./META/mapping_table.dat","r");
-	if(fp != NULL){
-		for(i=0; i<N_IO_CORES; i++){
-			ret = fread(mapping_table[i], sizeof(ppn_t), 
-					N_PER_CORE_TOTAL_PAGES, fp);
-			if(ret == -1)
-				printf("ERROR[%s] Read mapping table fail!\n", __FUNCTION__);
+	if(init_info == 1){
+		FILE* fp = fopen("./META/mapping_table.dat","r");
+		if(fp != NULL){
+			for(i=0; i<N_IO_CORES; i++){
+
+				n_total_pages = vs_core[i].n_total_pages;
+
+				ret = fread(mapping_table[i], sizeof(ppn_t), 
+						n_total_pages, fp);
+				if(ret == -1){
+					printf("ERROR[%s] Read mapping table fail!\n", __FUNCTION__);
+					return -1;
+				}
+			}
+
+			return 1;
+		}
+		else{
+			printf("ERROR[%s] fail to read mapping table from file!\n", __FUNCTION__);
+			return -1;
 		}
 	}
 	else{	
 		int j;
 		for(i=0; i<N_IO_CORES; i++){	
-			for(j=0; j<N_PER_CORE_TOTAL_PAGES; j++){
+			
+			n_total_pages = vs_core[i].n_total_pages;
+
+			for(j=0; j<n_total_pages; j++){
 				mapping_table[i][j].addr = -1;
 			}
 		}
+
+		return 0;
 	}
 }
 
 void TERM_MAPPING_TABLE(void)
 {
 	int i;
+	int64_t n_total_pages;
+
 	FILE* fp = fopen("./META/mapping_table.dat","w");
 	if(fp == NULL){
 		printf("ERROR[%s] File open fail\n", __FUNCTION__);
@@ -58,8 +83,9 @@ void TERM_MAPPING_TABLE(void)
 
 	/* Write the mapping table to file */
 	for(i=0; i<N_IO_CORES; i++){
+		n_total_pages = vs_core[i].n_total_pages;
 		fwrite(mapping_table[i], sizeof(ppn_t),
-			N_PER_CORE_TOTAL_PAGES, fp);
+			n_total_pages, fp);
 	}
 
 	/* Free memory for mapping table */

@@ -39,7 +39,7 @@ int64_t log_erase_val;
 double ssd_util;
 int64_t n_total_written_pages;
 
-void INIT_PERF_CHECKER(void){
+int INIT_PERF_CHECKER(void){
 	
 	int i;
 	int ret;
@@ -86,11 +86,14 @@ void INIT_PERF_CHECKER(void){
 		ret = fread(&n_total_written_pages, sizeof(int64_t), 1, fp_perf);
 		if(ret == -1){
 			printf("ERROR[%s] Read the number of written page fail\n",__FUNCTION__);
+			return -1;
 		}
 		fclose(fp_perf);
+		return 1;
 	}
 	else{
 		n_total_written_pages = 0;
+		return 0;
 	}
 }
 

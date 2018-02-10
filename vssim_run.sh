@@ -15,7 +15,7 @@ OS_DIR="./OS"
 OS_IMG="ubuntu-16.04.1-desktop-amd64.iso"
 
 # Remove metadata
-sudo rm ./vssim_meta/*.dat
+sudo rm ./META/*.dat
 
 # Create QEMU disk
 ./QEMU/qemu-img create -f qcow2 ${MNT}/${QEMU_IMG} 16G

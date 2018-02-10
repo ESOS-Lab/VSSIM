@@ -12,16 +12,17 @@ flash_info* flash_i;
 int64_t* n_total_empty_blocks;
 int64_t* n_total_victim_blocks;
 
-void INIT_FLASH_INFO(void)
+int INIT_FLASH_INFO(int init_info)
 {
 	int i;
+	int ret;
 
 	/* Allocate memory for flash information */
 	flash_i = (flash_info*)calloc(sizeof(flash_info), N_FLASH);
 	if(flash_i == NULL){
 		printf("ERROR[%s] Allocate memory for flash memory info fail!\n",
 				__FUNCTION__);
-		return;	
+		return -1;	
 	}
 
 	/* Initialize flash information */
@@ -36,12 +37,15 @@ void INIT_FLASH_INFO(void)
 	}
 
 	/* Initialize plane information */
-	INIT_PLANE_INFO();
+	ret = INIT_PLANE_INFO(init_info);
+
+	return ret;
 }
 
-void INIT_PLANE_INFO(void)
+int INIT_PLANE_INFO(int init_info)
 {
 	int i, j;
+	int ret;
 	plane_info* cur_plane = NULL;
 
 	for(i=0; i<N_FLASH; i++){
@@ -51,7 +55,7 @@ void INIT_PLANE_INFO(void)
 		if(cur_plane == NULL){
 			printf("ERROR[%s] Allocate memory for plane info fail\n",
 					__FUNCTION__);
-			return;
+			return -1;
 		}
 
 		/* Set variables to NULL */
@@ -78,13 +82,25 @@ void INIT_PLANE_INFO(void)
 	}
 
 	/* Initialize the variables in the current plane structure*/
-	INIT_INVERSE_MAPPING_TABLE();
-	INIT_BLOCK_STATE_TABLE();
-	INIT_EMPTY_BLOCK_LIST();
-	INIT_VICTIM_BLOCK_LIST();
+	ret = INIT_INVERSE_MAPPING_TABLE(init_info);
+	if(ret == -1) goto fail;
+
+	ret = INIT_BLOCK_STATE_TABLE(init_info);
+	if(ret == -1) goto fail;
+
+	ret = INIT_EMPTY_BLOCK_LIST(init_info);
+	if(ret == -1) goto fail;
+
+	ret = INIT_VICTIM_BLOCK_LIST(init_info);
+	if(ret == -1) goto fail;
+
+	return ret;
+fail:
+	printf("[%s] init fail\n", __FUNCTION__);
+	return -1;
 }
 
-void INIT_INVERSE_MAPPING_TABLE(void)
+int INIT_INVERSE_MAPPING_TABLE(int init_info)
 {
 	int i, j, k;
 	int ret;
@@ -97,25 +113,33 @@ void INIT_INVERSE_MAPPING_TABLE(void)
 
 			if(flash_i[i].plane_i[j].inverse_mapping_table == NULL){
 				printf("ERROR[%s] Allocate mapping table fail!\n", __FUNCTION__);
-				return;
+				return -1;
 			}
 		}
 	}
 
 
 	/* Initialize Inverse Mapping Table */
-	FILE* fp = fopen("./META/inverse_mapping.dat","r");
-	if(fp != NULL){
-
-		/* Restore inverse mapping table*/
-		for(i=0; i<N_FLASH; i++){
-			for(j=0; j<N_PLANES_PER_FLASH; j++){
-				ret = fread(flash_i[i].plane_i[j].inverse_mapping_table, 
-						sizeof(int64_t), N_PAGES_PER_PLANE, fp);
-				if(ret == -1)
-					printf("ERROR[%s] Read inverse mapping table fail!\n", 
+	if(init_info == 1){
+		FILE* fp = fopen("./META/inverse_mapping.dat","r");
+		if(fp != NULL){
+			/* Restore inverse mapping table*/
+			for(i=0; i<N_FLASH; i++){
+				for(j=0; j<N_PLANES_PER_FLASH; j++){
+					ret = fread(flash_i[i].plane_i[j].inverse_mapping_table, 
+							sizeof(int64_t), N_PAGES_PER_PLANE, fp);
+					if(ret == -1){
+						printf("ERROR[%s] Read inverse mapping table fail!\n", 
 							__FUNCTION__);
+						return -1;
+					}
+				}
 			}
+			return 1;
+		}
+		else{
+			printf("ERROR[%s] Fail to read file!\n", __FUNCTION__);
+			return -1;
 		}
 	}
 	else{
@@ -127,10 +151,11 @@ void INIT_INVERSE_MAPPING_TABLE(void)
 				}
 			}
 		}
+		return 0;
 	}
 }
 
-void INIT_BLOCK_STATE_TABLE(void)
+int INIT_BLOCK_STATE_TABLE(int init_info)
 {
 	int i, j;
 	int ret;
@@ -142,25 +167,33 @@ void INIT_BLOCK_STATE_TABLE(void)
 					(void*)calloc(N_BLOCKS_PER_PLANE, sizeof(block_state_entry));
 			if(flash_i[i].plane_i[j].block_state_table == NULL){
 				printf("ERROR[%s] Allocate mapping table fail!\n", __FUNCTION__);
-				return;
+				return -1;
 			}
 		}
 	}
 
 	/* Initialize block status table */
-	FILE* fp = fopen("./META/block_state_table.dat","r");
-	if(fp != NULL){
+	if(init_info == 1){
+		FILE* fp = fopen("./META/block_state_table.dat","r");
+		if(fp != NULL){
 
-		/* Restore block status table from the file */
-		for(i=0; i<N_FLASH; i++){
-			for(j=0; j<N_PLANES_PER_FLASH; j++){
-				ret = fread(flash_i[i].plane_i[j].block_state_table, 
+			/* Restore block status table from the file */
+			for(i=0; i<N_FLASH; i++){
+				for(j=0; j<N_PLANES_PER_FLASH; j++){
+					ret = fread(flash_i[i].plane_i[j].block_state_table, 
 						sizeof(block_state_entry), N_BLOCKS_PER_FLASH, fp);
 
-				if(ret == -1)
-					printf("ERROR[%s] Read block state table fail!\n", 
+					if(ret == -1){
+						printf("ERROR[%s] Read block state table fail!\n", 
 							__FUNCTION__);
+						return -1;
+					}
+				}
 			}
+		}
+		else{
+			printf("ERROR[%s] Fail to read file!\n", __FUNCTION__);
+			return -1;
 		}
 	}
 	else{
@@ -182,11 +215,15 @@ void INIT_BLOCK_STATE_TABLE(void)
 	}
 
 	/* Init the valid array of each block status entry */
-	INIT_VALID_ARRAY();
+	ret = INIT_VALID_ARRAY(init_info);
+	if(ret == -1) return -1;
+
 	CREATE_BITMAP_MASK();
+
+	return ret;
 }
 
-void INIT_VALID_ARRAY(void)
+int INIT_VALID_ARRAY(int init_info)
 {
 	int i, j, k;
 	int ret;
@@ -204,7 +241,7 @@ void INIT_VALID_ARRAY(void)
 				if(valid_array == NULL){
 					printf("ERROR[%s] Allocate memory for valid array fail!\n", 
 							__FUNCTION__);
-					return;
+					return -1;
 				}
 
 				cur_bs_entry->valid_array = valid_array;
@@ -213,27 +250,36 @@ void INIT_VALID_ARRAY(void)
 		}
 	}
 
-	fp = fopen("./META/valid_array.dat","r");
-	if(fp != NULL){
-		for(i=0; i<N_FLASH; i++){
-			for(j=0; j<N_PLANES_PER_FLASH; j++){
-				cur_bs_entry = (block_state_entry*)flash_i[i].plane_i[j].block_state_table;
+	if(init_info == 1){
+		fp = fopen("./META/valid_array.dat","r");
+		if(fp != NULL){
+			for(i=0; i<N_FLASH; i++){
+				for(j=0; j<N_PLANES_PER_FLASH; j++){
+					cur_bs_entry = (block_state_entry*)flash_i[i].plane_i[j].block_state_table;
 
-				for(k=0; k<N_BLOCKS_PER_PLANE; k++){
-					ret = fread(cur_bs_entry->valid_array, 
+					for(k=0; k<N_BLOCKS_PER_PLANE; k++){
+						ret = fread(cur_bs_entry->valid_array, 
 							sizeof(uint32_t), nbytes, fp);
-					if(ret == -1)
-						printf("ERROR[%s] Read valid array fail!\n", 
-								__FUNCTION__);
+						if(ret == -1)
+							printf("ERROR[%s] Read valid array fail!\n", 
+									__FUNCTION__);
 
-					cur_bs_entry += 1;
+						cur_bs_entry += 1;
+					}
 				}
 			}
+			return 1;
+		}
+		else{
+			printf("ERROR[%s] Fail to read file!\n", __FUNCTION__);
+			return -1;
 		}
 	}
+
+	return 0;
 }
 
-void INIT_EMPTY_BLOCK_LIST(void)
+int INIT_EMPTY_BLOCK_LIST(int init_info)
 {
 	int i, j, k;
 	unsigned int remains = 0;
@@ -248,66 +294,71 @@ void INIT_EMPTY_BLOCK_LIST(void)
 		n_total_empty_blocks[i] = 0;
 	}
 
-	FILE* fp = fopen("./META/empty_block_list.dat","r");
-	if(fp != NULL){
+	if(init_info == 1){
+		FILE* fp = fopen("./META/empty_block_list.dat","r");
+		if(fp != NULL){
+			for(i=0; i<N_FLASH; i++){
+				for(j=0; j<N_PLANES_PER_FLASH; j++){
 
-		for(i=0; i<N_FLASH; i++){
-			for(j=0; j<N_PLANES_PER_FLASH; j++){
-
-				/* Restore empty list of the plane from the file */
-				cur_empty_list = &flash_i[i].plane_i[j].empty_list;
-				ret = fread(cur_empty_list, sizeof(block_list), 1, fp);
-				if(ret == -1){
-					printf("ERROR[%s] Read empty block list fail!\n", __FUNCTION__);
-					return;
-				}
-
-				/* Update the total number of empty blocks of the flash */
-				flash_i[i].n_empty_blocks += cur_empty_list->n_blocks;
-			}
-		}
-
-		for(i=0; i<N_FLASH; i++){
-
-			for(j=0; j<N_PLANES_PER_FLASH; j++){
-
-				/* Get current empty block list */
-				cur_empty_list = &flash_i[i].plane_i[j].empty_list;
-
-				/* Restore empty block list from file */
-				remains = cur_empty_list->n_blocks;
-
-				while(remains > 0){
-					cur_empty_entry = (block_entry*)calloc(1, 
-								sizeof(block_entry));
-					if(cur_empty_entry == NULL){
-						printf("ERROR[%s] Calloc fail\n", __FUNCTION__);
-						break;
-					}
-
-					ret = fread(cur_empty_entry, sizeof(block_entry), 1, fp);
+					/* Restore empty list of the plane from the file */
+					cur_empty_list = &flash_i[i].plane_i[j].empty_list;
+					ret = fread(cur_empty_list, sizeof(block_list), 1, fp);
 					if(ret == -1){
-						printf("ERROR[%s] Read empty block entry fail!\n",
-							__FUNCTION__);
-						break;
+						printf("ERROR[%s] Read empty block list fail!\n", __FUNCTION__);
+						return -1;
 					}
 
-					cur_empty_entry->prev = NULL;
-					cur_empty_entry->next = NULL;
-
-					if(remains == cur_empty_list->n_blocks){
-						cur_empty_list->head = cur_empty_entry;
-						cur_empty_list->tail = cur_empty_entry;
-					}					
-					else{
-						cur_empty_list->tail->next = cur_empty_entry;
-						cur_empty_entry->prev = cur_empty_list->tail;
-						cur_empty_list->tail = cur_empty_entry;
-					}
-					remains--;
+					/* Update the total number of empty blocks of the flash */
+					flash_i[i].n_empty_blocks += cur_empty_list->n_blocks;
 				}
 			}
+
+			for(i=0; i<N_FLASH; i++){
+				for(j=0; j<N_PLANES_PER_FLASH; j++){
+
+					/* Get current empty block list */
+					cur_empty_list = &flash_i[i].plane_i[j].empty_list;
+
+					/* Restore empty block list from file */
+					remains = cur_empty_list->n_blocks;
+
+					while(remains > 0){
+						cur_empty_entry = (block_entry*)calloc(1, 
+									sizeof(block_entry));
+						if(cur_empty_entry == NULL){
+							printf("ERROR[%s] Calloc fail\n", __FUNCTION__);
+							return -1;
+					}
+
+						ret = fread(cur_empty_entry, sizeof(block_entry), 1, fp);
+						if(ret == -1){
+							printf("ERROR[%s] Read empty block entry fail!\n", __FUNCTION__);
+							return -1;
+						}
+
+						cur_empty_entry->prev = NULL;
+						cur_empty_entry->next = NULL;
+
+						if(remains == cur_empty_list->n_blocks){
+							cur_empty_list->head = cur_empty_entry;
+							cur_empty_list->tail = cur_empty_entry;
+						}					
+						else{
+							cur_empty_list->tail->next = cur_empty_entry;
+							cur_empty_entry->prev = cur_empty_list->tail;
+							cur_empty_list->tail = cur_empty_entry;
+						}
+						remains--;
+					}
+				}
+			}
+			return 1;
 		}
+		else{
+			printf("ERROR[%s] Fail to read file!\n", __FUNCTION__);
+			return -1;
+		}
+
 	}
 	else{
 		/* First boot */
@@ -324,7 +375,7 @@ void INIT_EMPTY_BLOCK_LIST(void)
 								sizeof(block_entry));	
 					if(cur_empty_entry == NULL){
 						printf("ERROR[%s] Calloc fail\n", __FUNCTION__);
-						break;
+						return -1;
 					}
 
 					cur_empty_entry->pbn.path.flash = (int8_t)i;
@@ -354,10 +405,11 @@ void INIT_EMPTY_BLOCK_LIST(void)
 			/* Initialize the number of empty blocks in the flash */
 			flash_i[i].n_empty_blocks = (uint32_t)N_BLOCKS_PER_FLASH;
 		}
+		return 0;
 	}
 }
 
-void INIT_VICTIM_BLOCK_LIST(void)
+int INIT_VICTIM_BLOCK_LIST(int init_info)
 {
 	int i, j;
 	unsigned int remains = 0;
@@ -371,62 +423,68 @@ void INIT_VICTIM_BLOCK_LIST(void)
 		n_total_victim_blocks[i] = 0;
 	}
 
-	FILE* fp = fopen("./META/victim_block_list.dat","r");
+	if(init_info == 1){
+		FILE* fp = fopen("./META/victim_block_list.dat","r");
 
-	if(fp != NULL){
-		/* Restore victim block list from file */
-		for(i=0; i<N_FLASH; i++){
-			for(j=0; j<N_PLANES_PER_FLASH; j++){
+		if(fp != NULL){
+			/* Restore victim block list from file */
+			for(i=0; i<N_FLASH; i++){
+				for(j=0; j<N_PLANES_PER_FLASH; j++){
 
-				cur_victim_list = &flash_i[i].plane_i[j].victim_list;
-				ret = fread(cur_victim_list, sizeof(block_list), 1, fp);
-				if(ret == -1){
-					printf("ERROR[%s] Read victim block list fail!\n", __FUNCTION__);
-					return;
-				}
-			}
-		}
-
-		/* Restore victim block entires from file */
-		for(i=0; i<N_FLASH; i++){
-			for(j=0; j<N_PLANES_PER_FLASH; j++){
-
-				/* Get current victim block list */
-				cur_victim_list = &flash_i[i].plane_i[j].victim_list;
-
-				/* Restore empty block list from file */
-				remains = cur_victim_list->n_blocks;
-
-				while(remains > 0){
-					cur_victim_entry = (block_entry*)calloc(1, 
-								sizeof(block_entry));
-					if(cur_victim_entry == NULL){
-						printf("ERROR[%s] Calloc fail\n", __FUNCTION__);
-						break;
-					}
-
-					ret = fread(cur_victim_entry, sizeof(block_entry), 1, fp);
+					cur_victim_list = &flash_i[i].plane_i[j].victim_list;
+					ret = fread(cur_victim_list, sizeof(block_list), 1, fp);
 					if(ret == -1){
-						printf("ERROR[%s] Read victim block entry fail!\n",
-							__FUNCTION__);
-						break;
+						printf("ERROR[%s] Read victim block list fail!\n", __FUNCTION__);
+						return -1;
 					}
-
-					cur_victim_entry->prev = NULL;
-					cur_victim_entry->next = NULL;
-
-					if(remains == cur_victim_list->n_blocks){
-						cur_victim_list->head = cur_victim_entry;
-						cur_victim_list->tail = cur_victim_entry;
-					}					
-					else{
-						cur_victim_list->tail->next = cur_victim_entry;
-						cur_victim_entry->prev = cur_victim_list->tail;
-						cur_victim_list->tail = cur_victim_entry;
-					}
-					remains--;
 				}
 			}
+
+			/* Restore victim block entires from file */
+			for(i=0; i<N_FLASH; i++){
+				for(j=0; j<N_PLANES_PER_FLASH; j++){
+
+					/* Get current victim block list */
+					cur_victim_list = &flash_i[i].plane_i[j].victim_list;
+
+					/* Restore empty block list from file */
+					remains = cur_victim_list->n_blocks;
+
+					while(remains > 0){
+						cur_victim_entry = (block_entry*)calloc(1, 
+								sizeof(block_entry));
+						if(cur_victim_entry == NULL){
+							printf("ERROR[%s] Calloc fail\n", __FUNCTION__);
+							return -1;
+						}
+
+						ret = fread(cur_victim_entry, sizeof(block_entry), 1, fp);
+						if(ret == -1){
+							printf("ERROR[%s] Read victim block entry fail!\n", __FUNCTION__);
+							return -1;
+						}
+
+						cur_victim_entry->prev = NULL;
+						cur_victim_entry->next = NULL;
+
+						if(remains == cur_victim_list->n_blocks){
+							cur_victim_list->head = cur_victim_entry;
+							cur_victim_list->tail = cur_victim_entry;
+						}					
+						else{
+							cur_victim_list->tail->next = cur_victim_entry;
+							cur_victim_entry->prev = cur_victim_list->tail;
+							cur_victim_list->tail = cur_victim_entry;
+						}
+						remains--;
+					}
+				}
+			}
+			return 1;
+		}
+		else{
+			printf("ERROR[%s] Fail to read file!\n", __FUNCTION__);
+			return -1;
 		}
 	}
 	else{
@@ -443,6 +501,7 @@ void INIT_VICTIM_BLOCK_LIST(void)
 				cur_victim_list->n_blocks = 0;
 			}
 		}
+		return 0;
 	}
 }
 
@@ -511,6 +570,7 @@ void TERM_BLOCK_STATE_TABLE(void)
 	/* Write block status table to the file */
 	for(i=0; i<N_FLASH; i++){
 		for(j=0; j<N_PLANES_PER_FLASH; j++){
+
 			fwrite(flash_i[i].plane_i[j].block_state_table, 
 					sizeof(block_state_entry), N_BLOCKS_PER_PLANE, fp);
 
