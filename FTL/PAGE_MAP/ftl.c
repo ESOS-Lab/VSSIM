@@ -8,6 +8,8 @@
 #include "common.h"
 
 int g_init = 0;
+int g_term = 0;
+
 extern double ssd_util;
 
 /* return value of each init function 
@@ -56,25 +58,29 @@ fail:
 
 void FTL_TERM(void)
 {
-	printf("[%s] start\n", __FUNCTION__);
+	if(g_term == 0){
+		printf("[%s] start\n", __FUNCTION__);
 
-	TERM_IO_BUFFER();
+		TERM_IO_BUFFER();
 
-	TERM_MAPPING_TABLE(); /* Term mapping -> Term core */
+		TERM_MAPPING_TABLE(); /* Term mapping -> Term core */
 
-	TERM_VSSIM_CORE();
-	TERM_FLASH_INFO();
+		TERM_VSSIM_CORE();
+		TERM_FLASH_INFO();
 
-	TERM_PERF_CHECKER();
-
+		TERM_PERF_CHECKER();
 
 #ifdef MONITOR_ON
-	TERM_LOG_MANAGER();
+		TERM_LOG_MANAGER();
 #endif
 
-	TERM_FLASH();
+		TERM_FLASH();
 
-	printf("[%s] complete\n", __FUNCTION__);
+		g_term = 1;
+
+		printf("[%s] complete\n", __FUNCTION__);
+		return;
+	}
 }
 
 int FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)
@@ -225,9 +231,6 @@ int _FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)
 		left_skip = 0;
 	}
 
-//TEMP
-//	printf("[%s] wait IO ... %d\n", __FUNCTION__, n_read_pages);
-
 	/* Wait until all flash io are completed */
 	WAIT_FLASH_IO(core_id, READ, n_read_pages);
 
@@ -281,11 +284,6 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 		write_sects = SECTORS_PER_PAGE - left_skip - right_skip;
 
 		ret = GET_NEW_PAGE(core_id, temp_pbn, MODE_OVERALL, &new_ppn);
-
-//TEMP
-		if(core_id == 2 && new_ppn.addr == 0){
-			printf("!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-		}
 
 		if(ret == FAIL){
 			printf("ERROR[%s] Get new page fail \n", __FUNCTION__);

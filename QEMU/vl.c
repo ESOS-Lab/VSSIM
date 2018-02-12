@@ -1882,10 +1882,6 @@ static bool main_loop_should_exit(void)
     }
     if (qemu_reset_requested()) {
 
-#ifdef VSSIM_NVME
-	SSD_TERM();
-#endif
-
         pause_all_vcpus();
         qemu_system_reset(VMRESET_REPORT);
         resume_all_vcpus();

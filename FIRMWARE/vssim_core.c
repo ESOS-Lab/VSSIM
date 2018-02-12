@@ -237,6 +237,9 @@ void TERM_VSSIM_CORE(void)
 	vssim_exit = 1;
 
 	for(i=0; i<N_IO_CORES; i++){
+
+		free(vs_core[i].write_queue);
+
 		pthread_cond_destroy(&ssd_io_ready[i]);
 		pthread_mutex_destroy(&ssd_io_lock[i]);
 	}

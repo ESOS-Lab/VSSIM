@@ -167,6 +167,9 @@ void TERM_IO_BUFFER(void)
 		free(vssim_w_buf[i].addr);
 	}	
 
+	free(vssim_r_buf.addr);
+	free(vssim_discard_buf.addr);
+
 	/* Deallocate event queue */
 	free(e_queue);
 	free(candidate_e_queue);
