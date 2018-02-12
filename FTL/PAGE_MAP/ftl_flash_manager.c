@@ -72,7 +72,7 @@ int INIT_PLANE_INFO(int init_info)
 			cur_plane[j].empty_list.n_blocks 	= 0;
 			cur_plane[j].victim_list.head		= NULL;
 			cur_plane[j].victim_list.tail		= NULL;
-			cur_plane[j].victim_list.n_blocks = 0;
+			cur_plane[j].victim_list.n_blocks 	= 0;
 
 			/* Init parent pointer */
 			cur_plane[j].flash_i = &flash_i[i];
@@ -127,7 +127,7 @@ int INIT_INVERSE_MAPPING_TABLE(int init_info)
 			for(i=0; i<N_FLASH; i++){
 				for(j=0; j<N_PLANES_PER_FLASH; j++){
 					ret = fread(flash_i[i].plane_i[j].inverse_mapping_table, 
-							sizeof(int64_t), N_PAGES_PER_PLANE, fp);
+							N_PAGES_PER_PLANE, sizeof(int64_t), fp);
 					if(ret == -1){
 						printf("ERROR[%s] Read inverse mapping table fail!\n", 
 							__FUNCTION__);
@@ -135,6 +135,7 @@ int INIT_INVERSE_MAPPING_TABLE(int init_info)
 					}
 				}
 			}
+			fclose(fp);
 			return 1;
 		}
 		else{
@@ -165,6 +166,7 @@ int INIT_BLOCK_STATE_TABLE(int init_info)
 		for(j=0; j<N_PLANES_PER_FLASH; j++){
 			flash_i[i].plane_i[j].block_state_table = 
 					(void*)calloc(N_BLOCKS_PER_PLANE, sizeof(block_state_entry));
+
 			if(flash_i[i].plane_i[j].block_state_table == NULL){
 				printf("ERROR[%s] Allocate mapping table fail!\n", __FUNCTION__);
 				return -1;
@@ -181,7 +183,7 @@ int INIT_BLOCK_STATE_TABLE(int init_info)
 			for(i=0; i<N_FLASH; i++){
 				for(j=0; j<N_PLANES_PER_FLASH; j++){
 					ret = fread(flash_i[i].plane_i[j].block_state_table, 
-						sizeof(block_state_entry), N_BLOCKS_PER_FLASH, fp);
+						sizeof(block_state_entry), N_BLOCKS_PER_PLANE, fp);
 
 					if(ret == -1){
 						printf("ERROR[%s] Read block state table fail!\n", 
@@ -190,6 +192,8 @@ int INIT_BLOCK_STATE_TABLE(int init_info)
 					}
 				}
 			}
+
+			fclose(fp);
 		}
 		else{
 			printf("ERROR[%s] Fail to read file!\n", __FUNCTION__);
@@ -268,6 +272,7 @@ int INIT_VALID_ARRAY(int init_info)
 					}
 				}
 			}
+			fclose(fp);
 			return 1;
 		}
 		else{
@@ -352,6 +357,8 @@ int INIT_EMPTY_BLOCK_LIST(int init_info)
 					}
 				}
 			}
+
+			fclose(fp);
 			return 1;
 		}
 		else{
@@ -480,6 +487,7 @@ int INIT_VICTIM_BLOCK_LIST(int init_info)
 					}
 				}
 			}
+			fclose(fp);
 			return 1;
 		}
 		else{
@@ -552,6 +560,7 @@ void TERM_INVERSE_MAPPING_TABLE(void)
 			free(flash_i[i].plane_i[j].inverse_mapping_table);
 		}
 	}
+	fclose(fp);
 }
 
 void TERM_BLOCK_STATE_TABLE(void)
@@ -573,8 +582,14 @@ void TERM_BLOCK_STATE_TABLE(void)
 
 			fwrite(flash_i[i].plane_i[j].block_state_table, 
 					sizeof(block_state_entry), N_BLOCKS_PER_PLANE, fp);
+		}
+	}
+	fclose(fp);
 
-			/* Free current block status table */
+	/* Free current block status table */
+	for(i=0; i<N_FLASH; i++){
+		for(j=0; j<N_PLANES_PER_FLASH; j++){
+
 			free(flash_i[i].plane_i[j].block_state_table);
 		}
 	}
@@ -607,6 +622,7 @@ void TERM_VALID_ARRAY(void)
 			}
 		}
 	}
+	fclose(fp);
 }
 
 void TERM_EMPTY_BLOCK_LIST(void)
@@ -664,6 +680,7 @@ void TERM_EMPTY_BLOCK_LIST(void)
 			}
 		}
 	}
+	fclose(fp);
 }
 
 void TERM_VICTIM_BLOCK_LIST(void)
@@ -721,6 +738,7 @@ void TERM_VICTIM_BLOCK_LIST(void)
 			}
 		}
 	}
+	fclose(fp);
 }
 
 

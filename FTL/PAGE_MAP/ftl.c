@@ -9,6 +9,7 @@
 
 int g_init = 0;
 int g_term = 0;
+pthread_mutex_t term_lock = PTHREAD_MUTEX_INITIALIZER;
 
 extern double ssd_util;
 
@@ -58,6 +59,8 @@ fail:
 
 void FTL_TERM(void)
 {
+	pthread_mutex_lock(&term_lock);
+
 	if(g_term == 0){
 		printf("[%s] start\n", __FUNCTION__);
 
@@ -81,6 +84,7 @@ void FTL_TERM(void)
 		printf("[%s] complete\n", __FUNCTION__);
 		return;
 	}
+	pthread_mutex_unlock(&term_lock);
 }
 
 int FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)

@@ -93,6 +93,8 @@ void TERM_MAPPING_TABLE(void)
 		free(mapping_table[i]);
 	}
 	free(mapping_table);
+
+	fclose(fp);
 }
 
 ppn_t GET_MAPPING_INFO(int core_id, int64_t lpn)

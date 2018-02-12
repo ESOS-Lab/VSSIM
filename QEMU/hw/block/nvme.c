@@ -28,7 +28,6 @@
  * 18-Sep-2017: Add vssim.h header, Insert SSD_NVME_READ(), SSD_NVME_WRITE() function calls
  *		to the nvme_rw() function.
  * 19-Sep-2017: Insert SSD_INIT() function calls to the nvme_init() function
- * 21-Sep-2017: Insert SSD_TERM() function calls to the nvme_exit() function
  * 08-Jan-2018: The NvmeRequest has a vssim event pointer. nvme_rw() function is modified.
  * 09-Jan-2018: Support discard command, Add nvme_discard()
  * 19-Jan-2018: Insert SSD_NVME_FLUSH() function call to the nvme_flush() function
@@ -1039,10 +1038,6 @@ static void nvme_exit(PCIDevice *pci_dev)
     g_free(n->cq);
     g_free(n->sq);
     msix_uninit_exclusive_bar(pci_dev);
-
-#ifdef VSSIM_NVME
-    SSD_TERM();
-#endif
 }
 
 static Property nvme_props[] = {

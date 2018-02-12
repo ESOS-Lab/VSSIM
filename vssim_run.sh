@@ -8,7 +8,7 @@
 #!/bin/bash
 
 MNT="./RAMDISK/mnt"
-QEMU_RUN_OPTION="-m 1024 -enable-kvm -vga cirrus -device nvme,drive=nvme1,serial=foo -smp cores=4"
+QEMU_RUN_OPTION="-m 1024 -enable-kvm -vga cirrus -device nvme,drive=nvme1,serial=foo"
 QEMU_IMG="ssd_hda.img"
 QEMU_DIR="./QEMU/x86_64-softmmu"
 OS_DIR="./OS"
