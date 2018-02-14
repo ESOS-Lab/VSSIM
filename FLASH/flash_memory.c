@@ -171,7 +171,7 @@ int FLASH_STATE_CHECKER(int core_id)
 
 			if(PAGE_CACHE_REG_ENABLE){
 				/* Update page cache register state of this plane */
-				UPDATE_PAGE_CACHE_REGISTER(cur_plane, channel_nb, t_now);
+				n_completed_pages += UPDATE_PAGE_CACHE_REGISTER(cur_plane, channel_nb, t_now);
 			}
 
 //TEMP
@@ -464,6 +464,8 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 				/* Initialized current plane */	
 				cur_plane->cmd = CMD_NOOP;
+
+				completed_pages++;
 			}
 			break;
 
@@ -496,7 +498,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 }
 
 
-void UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
+int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 {
 	reg* data_reg = &cur_plane->data_reg;
 	reg* page_cache = &cur_plane->page_cache;
@@ -508,6 +510,8 @@ void UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 	uint8_t cmd = cur_plane->cmd;
 	ppn_t next_ppn;
 	ppn_t copyback_ppn;
+
+	int completed_pages = 0;
 
 	switch(page_cache->state){
 
@@ -671,6 +675,8 @@ void UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					page_cache->t_end = -1;
 
 					cur_plane->cmd = CMD_NOOP;
+
+					completed_pages++;
 				}
 			 	else if(cmd == CMD_PAGE_COPYBACK_PHASE2){
 					ppn_t src_ppn = page_cache->copyback_ppn;
@@ -684,6 +690,8 @@ void UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					src_reg->t_end = -1;
 
 					src_plane->cmd = CMD_NOOP;
+
+					completed_pages++;
 				}
 			}
 			break;
@@ -742,6 +750,8 @@ void UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 				/* Initialized current plane */	
 				cur_plane->cmd = CMD_NOOP;
+
+				completed_pages++;
 			}
 			break;
 
@@ -789,6 +799,8 @@ void UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 		default:
 			break;
 	}
+
+	return completed_pages;
 }
 
 
@@ -1005,6 +1017,9 @@ int64_t GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(int channel_nb, int64_t t_now,
 		t_update = REG_CMD_SET_DELAY;
 	}
 	else if(cur_state == SET_CMD1 && cmd == CMD_BLOCK_ERASE){
+		t_update = REG_CMD_SET_DELAY;
+	}
+	else if(cur_state == SET_CMD1 && cmd == CMD_PAGE_COPYBACK_PHASE2){
 		t_update = REG_CMD_SET_DELAY;
 	}
 	else if(cur_state == PAGE_READ && cmd == CMD_PAGE_COPYBACK){

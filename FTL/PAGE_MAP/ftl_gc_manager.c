@@ -69,7 +69,7 @@ void FGGC_CHECK(int core_id)
 
 	/* Check all the flash list of the core */
 	do{
-		for(plane_index = 0; plane_index < N_PLANES_PER_FLASH; plane_index++){
+		for(plane_index=0; plane_index<N_PLANES_PER_FLASH; plane_index++){
 
 			/* Get the state of the plane */
 			cur_plane = &cur_flash->plane_i[plane_index];
@@ -77,6 +77,8 @@ void FGGC_CHECK(int core_id)
 
 			/* If the plane needs to perform foreground GC, */
 			if(plane_state == NEED_FGGC){
+
+				UPDATE_PLANE_STATE(core_id, cur_plane, ON_GC);
 
 				/* Perform foreground GC */
 				ret = PLANE_GARBAGE_COLLECTION(cur_plane);
@@ -92,6 +94,9 @@ void FGGC_CHECK(int core_id)
 
 		/* refresh the number of fggc planes */
 		n_fggc_planes = GET_N_FGGC_PLANES(core_id);
+
+		if(n_fggc_planes == 0)
+			break;
 
 	}while(cur_flash != init_flash_i);	
 }
@@ -122,12 +127,11 @@ void CHECK_EMPTY_BLOCKS(int core_id, pbn_t pbn)
 	}
 
 	/* Check GC threshold of the Flash */
-	
-	if(n_empty_blocks <= cur_core->n_gc_low_watermark_blocks){
-		UPDATE_PLANE_STATE(core_id, cur_plane, NEED_BGGC);
-	}
-	else if(n_empty_blocks <= cur_core->n_gc_high_watermark_blocks){
+	if(n_empty_blocks <= cur_core->n_gc_high_watermark_blocks){
 		UPDATE_PLANE_STATE(core_id, cur_plane, NEED_FGGC);
+	}
+	else if(n_empty_blocks <= cur_core->n_gc_low_watermark_blocks){
+		UPDATE_PLANE_STATE(core_id, cur_plane, NEED_BGGC);
 	}
 	else{
 		UPDATE_PLANE_STATE(core_id, cur_plane, IDLE);
@@ -179,10 +183,12 @@ int GARBAGE_COLLECTION(block_entry* victim_entry)
 	flash_nb = (int)victim_pbn.path.flash;
 	core_id = flash_i[flash_nb].core_id;
 
+	/* Get block state entry and the valid array of the victim block */
 	bs_entry = GET_BLOCK_STATE_ENTRY(victim_pbn);
 	valid_array = bs_entry->valid_array;
 	n_valid_pages = bs_entry->n_valid_pages;
 
+	/* Move valid pages from the victim block to new empty page */
 	for(i=0; i<N_PAGES_PER_BLOCK; i++){
 		if(TEST_BITMAP_MASK(valid_array, i)){
 
@@ -202,13 +208,19 @@ int GARBAGE_COLLECTION(block_entry* victim_entry)
 			old_ppn = PBN_TO_PPN(victim_pbn, i);
 
 			if(gc_mode == CORE_GC){
+				/* read the valid page from the victim block */
 				FLASH_PAGE_READ(old_ppn);
+				WAIT_FLASH_IO(core_id, READ, 1);
 
-				/* Write the Valid Page*/
+				/* Write the valid page to new free page */
 				FLASH_PAGE_WRITE(new_ppn);
+				WAIT_FLASH_IO(core_id, WRITE, 1);
 			}
 			else{
 				FLASH_PAGE_COPYBACK(new_ppn, old_ppn);
+	
+				/* Wait until the page copyback is completed */
+				WAIT_FLASH_IO(core_id, WRITE, 1);
 			}
 
 			/* Get lpn of the old ppn */
@@ -227,11 +239,11 @@ int GARBAGE_COLLECTION(block_entry* victim_entry)
 		return FAIL;
 	}
 
-	/* Wait until all flash io are completed */
-	WAIT_FLASH_IO(core_id, WRITE, n_copies);
-
 	/* Erase the victim Flash block */
 	FLASH_BLOCK_ERASE(victim_pbn);
+
+	/* Wait until block erase completed */
+	WAIT_FLASH_IO(core_id, BLOCK_ERASE, 1); 
 
 	/* Move the victim block from victim list to empty list */
 	POP_VICTIM_BLOCK(core_id, victim_entry);
@@ -247,9 +259,6 @@ int GARBAGE_COLLECTION(block_entry* victim_entry)
 	UPDATE_LOG(LOG_ERASE_BLOCK, 1);
 #endif
 
-#ifdef FTL_DEBUG
-	printf("[%s] Complete\n",__FUNCTION__);
-#endif
 	return SUCCESS;
 }
 

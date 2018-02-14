@@ -141,9 +141,6 @@ int UPDATE_OLD_PAGE_MAPPING(int core_id, int64_t lpn)
 	old_ppn = GET_MAPPING_INFO(core_id, lpn);
 
 	if(old_ppn.addr == -1){
-#ifdef FTL_DEBUG
-		printf("[%s] New page \n", __FUNCTION__);
-#endif
 		return SUCCESS;
 	}
 	else{
@@ -161,11 +158,7 @@ int UPDATE_NEW_PAGE_MAPPING(int core_id, int64_t lpn, ppn_t ppn)
 	pbn_t pbn;
 
 	/* Update Page Mapping Table */
-#ifdef FTL_MAP_CACHE
-	CACHE_UPDATE_PPN(lpn, ppn);
-#else
 	mapping_table[core_id][lpn] = ppn;
-#endif
 
 	/* Update Inverse Page Mapping Table */
 	pbn = PPN_TO_PBN(ppn);

@@ -322,6 +322,11 @@ void *SSD_IO_THREAD_MAIN_LOOP(void *arg)
 		
 			END_PER_CORE_FLUSH_REQUEST(core_id);
 
+#ifdef IO_CORE_DEBUG
+			printf("[%s] %ld core: flush all write buffer\n",
+					__FUNCTION__, core_id);
+#endif
+
 			/* Reset the flush flag*/
 			RESET_FLUSH_FLAG(core_id);
 		}
@@ -336,6 +341,10 @@ void *SSD_IO_THREAD_MAIN_LOOP(void *arg)
 			}
 		}
 		else{
+#ifdef IO_CORE_DEBUG
+			printf("[%s] %ld core: sleep %d usec\n",
+					__FUNCTION__, core_id, FLUSH_TIMEOUT_USEC);
+#endif
 			MAKE_TIMEOUT(&ts_timeout, FLUSH_TIMEOUT_USEC);
 			pthread_cond_timedwait(&ssd_io_ready[core_id], 
 					&ssd_io_lock[core_id],
@@ -752,6 +761,12 @@ void END_PER_CORE_WRITE_REQUEST(core_req_entry* cr_entry, int w_buf_index)
 
 	/* Update the number of empty sectors */
 	vssim_w_buf[w_buf_index].n_empty_sectors += cr_entry->length;
+
+#ifdef IO_CORE_DEBUG  
+	printf("[%s] now %d-th write buffer has %d empty_sectors\n",
+			__FUNCTION__, w_buf_index, 
+			vssim_w_buf[w_buf_index].n_empty_sectors);
+#endif
 
 	/* If the write buffer is empty, update the write buffer info. */
 	if(vssim_w_buf[w_buf_index].n_empty_sectors

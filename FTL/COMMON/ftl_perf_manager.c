@@ -196,6 +196,7 @@ void UPDATE_LOG(int log_type, int64_t arg)
 			break;
 		case LOG_ERASE_BLOCK:
 			log_erase_val += arg;
+			n_total_written_pages -= N_PAGES_PER_BLOCK;
 			break;
 		default:
 			break;

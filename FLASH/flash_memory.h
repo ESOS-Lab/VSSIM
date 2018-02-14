@@ -76,7 +76,7 @@ int TERM_FLASH(void);
 
 int FLASH_STATE_CHECKER(int core_id);
 int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now);
-void UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now);
+int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now);
 
 /* GET IO from FTL */
 int FLASH_PAGE_READ(ppn_t ppn);

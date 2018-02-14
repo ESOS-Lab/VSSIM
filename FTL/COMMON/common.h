@@ -89,6 +89,7 @@ int64_t get_usec(void);
 /* Workload */
 
 /* FTL Debugging */
+//#define FTL_DEBUG
 
 /* FTL Perf Debug */
 

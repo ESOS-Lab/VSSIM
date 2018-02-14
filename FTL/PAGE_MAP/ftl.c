@@ -172,7 +172,8 @@ void FTL_DISCARD(int core_id, uint64_t sector_nb, uint32_t length)
 int _FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)
 {
 #ifdef FTL_DEBUG
-	printf("[%s] Start, sector_nb: %lu, length: %u\n", __FUNCTION__, sector_nb, length);
+	printf("[%s] %d core: Start read %lu sector, %u length\n", 
+			__FUNCTION__, core_id, sector_nb, length);
 #endif
 
 	if(sector_nb + length > N_SECTORS){
@@ -253,7 +254,8 @@ int _FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)
 int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 {
 #ifdef FTL_DEBUG
-	printf("[%s] Start\n", __FUNCTION__);
+	printf("[%s] %d core: Start write %lu sector, %u length\n", 
+			__FUNCTION__, core_id, sector_nb, length);
 #endif
 
 	if(sector_nb + length > N_SECTORS){
@@ -288,11 +290,17 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 		write_sects = SECTORS_PER_PAGE - left_skip - right_skip;
 
 		ret = GET_NEW_PAGE(core_id, temp_pbn, MODE_OVERALL, &new_ppn);
-
 		if(ret == FAIL){
 			printf("ERROR[%s] Get new page fail \n", __FUNCTION__);
 			return FAIL;
 		}
+
+#ifdef FTL_DEBUG
+		printf("[%s] %d core: get new page, f:%d, p:%d, b:%d, p:%d\n",
+				__FUNCTION__, core_id, new_ppn.path.flash,
+				new_ppn.path.plane, new_ppn.path.block, 
+				new_ppn.path.page);
+#endif
 
 		lpn = lba / (int64_t)SECTORS_PER_PAGE;
 		old_ppn = GET_MAPPING_INFO(core_id, lpn);
@@ -303,7 +311,7 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 //			WAIT_FLASH_IO(core_id, 1);
 
 			FLASH_PAGE_WRITE(new_ppn);
-			
+
 			PARTIAL_UPDATE_PAGE_MAPPING(core_id, lpn, new_ppn, \
 					old_ppn, left_skip, right_skip);
 		}
@@ -319,6 +327,11 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 		remain -= write_sects;
 		left_skip = 0;
 	}
+
+#ifdef FTL_DEBUG
+	printf("[%s] %d core: wait for writing %d pages\n",
+			__FUNCTION__, core_id, n_write_pages);
+#endif
 
 	/* Wait until all flash io are completed */
 	WAIT_FLASH_IO(core_id, WRITE, n_write_pages);

@@ -138,15 +138,17 @@ void END_SSD_NVME_RW(event_queue_entry* eq_entry)
 
 	/* Wait until the vssim IO process is completed */
 	
-//TEMP
-//	printf("[%s] Check %lu-th event (io_type %d)\n", __FUNCTION__, eq_entry->seq_nb, io_type);
+#ifdef IO_CORE_DEBUG
+	printf("[%s] Check %lu-th event (io_type %d)\n", __FUNCTION__, eq_entry->seq_nb, io_type);
+#endif
 
 	while(e_state != COMPLETED){
 		e_state = GET_EVENT_STATE(eq_entry);
 	}	
 
-//TEMP
-//	printf("[%s] Complete %lu-th event\n", __FUNCTION__, eq_entry->seq_nb);
+#ifdef IO_CORE_DEBUG
+	printf("[%s] Complete %lu-th event\n", __FUNCTION__, eq_entry->seq_nb);
+#endif
 
 	/* Post processing */
 	if(io_type == READ){

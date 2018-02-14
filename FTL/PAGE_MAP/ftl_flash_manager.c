@@ -256,6 +256,7 @@ int INIT_VALID_ARRAY(int init_info)
 
 	if(init_info == 1){
 		fp = fopen("./META/valid_array.dat","r");
+
 		if(fp != NULL){
 			for(i=0; i<N_FLASH; i++){
 				for(j=0; j<N_PLANES_PER_FLASH; j++){
@@ -401,9 +402,6 @@ int INIT_EMPTY_BLOCK_LIST(int init_info)
 						cur_empty_entry->prev = cur_empty_list->tail;
 						cur_empty_list->tail = cur_empty_entry;
 					}
-
-					/* Update the new block to EMPTY_BLOCK state*/
-					UPDATE_BLOCK_STATE(cur_empty_entry->pbn, EMPTY_BLOCK);
 				}
 
 				/* Initialize the number of empty blocks in the plane */
@@ -893,6 +891,8 @@ int INSERT_EMPTY_BLOCK(int core_id, block_entry* new_empty_block)
 	cur_plane = &cur_flash->plane_i[plane_nb];
 	empty_list = &cur_plane->empty_list;
 
+	/* Update block entry */
+	new_empty_block->w_index = 0;
 	new_empty_block->prev = NULL;
 	new_empty_block->next = NULL;
 
@@ -1166,7 +1166,7 @@ int IS_AVAILABLE_PLANE(plane_info* cur_plane)
 
 	/* If the plane is processing GC (or needed), 
 			the plane is not available */
-	if(state == ON_GC || state == NEED_FGGC)
+	if(state == ON_GC)
 		return FAIL;
 
 	return SUCCESS;
@@ -1201,6 +1201,7 @@ void UPDATE_PLANE_STATE(int core_id, plane_info* cur_plane, int state)
 
 	if(state == NEED_BGGC)
 		INCREASE_N_BGGC_PLANES(core_id);
-	else if(state == NEED_FGGC)
+	else if(state == NEED_FGGC){
 		INCREASE_N_FGGC_PLANES(core_id);
+	}
 }

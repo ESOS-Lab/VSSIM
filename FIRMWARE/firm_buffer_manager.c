@@ -215,6 +215,11 @@ void FIRM_WRITE_EVENT(event_queue_entry* w_entry, bool flush)
 		/* Mark write buffer flag as full */
 		vssim_w_buf[write_buffer_index].is_full = 1;
 
+#ifdef IO_CORE_DEBUG
+		printf("[%s] %lu-th write event: now %d-th write buffer is full\n",
+				__FUNCTION__, w_entry->seq_nb, write_buffer_index);
+#endif
+
 		pthread_mutex_unlock(&vssim_w_buf[write_buffer_index].lock);
 
 		/* Wake up the IO thread */
@@ -231,6 +236,10 @@ void FIRM_WRITE_EVENT(event_queue_entry* w_entry, bool flush)
 
 	/* If current buffer is also full, wait till the buffer is empty */	
 	while(vssim_w_buf[write_buffer_index].is_full == 1){
+#ifdef IO_CORE_DEBUG
+		printf("[%s] %lu-th write event: wait, %d-th write buffer is also full\n",
+				__FUNCTION__, w_entry->seq_nb, write_buffer_index);
+#endif
 		pthread_cond_wait(&vssim_w_buf[write_buffer_index].ready,
 				&vssim_w_buf[write_buffer_index].lock);
 	}
@@ -251,6 +260,10 @@ void FIRM_WRITE_EVENT(event_queue_entry* w_entry, bool flush)
 		INSERT_TO_CANDIDATE_EVENT_QUEUE(w_entry);
 	}
 	else{
+#ifdef IO_CORE_DEBUG
+		printf("[%s] %lu-th event: write to buffer and completed!\n",
+				__FUNCTION__, w_entry->seq_nb);
+#endif
 		/* Return immediately to the host */
 		UPDATE_EVENT_STATE(w_entry, COMPLETED);	
 	}
@@ -521,6 +534,11 @@ event_queue_entry* DEQUEUE_IO(void)
 	eq_entry->prev = NULL;
 	eq_entry->next = NULL;
 
+#ifdef IO_CORE_DEBUG
+	printf("[%s] dequeue %lu-th event, now %d remain\n",
+		__FUNCTION__, eq_entry->seq_nb, e_queue->entry_nb);
+#endif
+
 	return eq_entry;
 }
 
@@ -579,6 +597,11 @@ void REMOVE_FROM_CANDIDATE_EVENT_QUEUE(event_queue_entry* eq_entry)
 void ENQUEUE_IO(event_queue_entry* new_entry)
 {
 	int io_type = new_entry->io_type;
+
+#ifdef IO_CORE_DEBUG
+	printf("[%s] %lu-th event (io_type %d) is inserted \n",
+			__FUNCTION__, new_entry->seq_nb, io_type);
+#endif
 
 	/* Get the event queue lock */
 	pthread_mutex_lock(&eq_lock);
@@ -725,6 +748,11 @@ int GET_WRITE_BUFFER_TO_FLUSH(int core_id, int* w_buf_index)
 				|| (t_now - vssim_w_buf[ret_index].t_last_flush 
 				> FLUSH_TIMEOUT_USEC))){
 
+#ifdef IO_CORE_DEBUG
+			printf("[%s] core %d: decide to flush %d write buffer\n",
+					__FUNCTION__, core_id, ret_index);
+#endif
+
 			*w_buf_index = ret_index;
 
 			vssim_w_buf[ret_index].is_full = 1;
@@ -744,6 +772,10 @@ int GET_WRITE_BUFFER_TO_FLUSH(int core_id, int* w_buf_index)
 
 	}while(i != N_WRITE_BUF);
 
+#ifdef IO_CORE_DEBUG
+	printf("[%s] core %d: There is no write buffer to flush\n",
+				__FUNCTION__, core_id);
+#endif
 	return FAIL;
 }
 
@@ -834,6 +866,11 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 
 		/* Write data to Flash memory */
 		FTL_WRITE(core_id, cr_entry->sector_nb, cr_entry->length);
+
+#ifdef IO_CORE_DEBUG
+		printf("[%s] core %d: %lu-th event FTL write complete\n",
+			__FUNCTION__, core_id, cr_entry->parent->seq_nb);
+#endif
 
 		/* post processing */
 		END_PER_CORE_WRITE_REQUEST(cr_entry, w_buf_index);
