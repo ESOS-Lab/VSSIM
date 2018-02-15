@@ -107,6 +107,7 @@ event_queue_entry* CREATE_NEW_EVENT(int io_type, uint64_t slba,
 			uint32_t nlb, void* opaque, CallbackFunc *cb);
 void UPDATE_EVENT_STATE(event_queue_entry* eq_entry, enum event_state state); 
 int GET_EVENT_STATE(event_queue_entry* eq_entry); 
+int GET_N_IO_PAGES(uint64_t sector_nb, uint32_t length);
 
 void FIRM_READ_EVENT(event_queue_entry* r_entry);
 void FIRM_WRITE_EVENT(event_queue_entry* w_entry, bool flush);

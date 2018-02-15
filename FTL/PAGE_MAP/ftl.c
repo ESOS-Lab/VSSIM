@@ -11,8 +11,6 @@ int g_init = 0;
 int g_term = 0;
 pthread_mutex_t term_lock = PTHREAD_MUTEX_INITIALIZER;
 
-extern double ssd_util;
-
 /* return value of each init function 
  * 	-1: return FAIL
  *	 0: First boot
@@ -186,7 +184,7 @@ int _FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)
 	uint64_t lba = sector_nb;
 	uint32_t remain = length;
 	uint32_t left_skip = sector_nb % SECTORS_PER_PAGE;
-	uint32_t right_skip;
+	uint32_t right_skip = 0;
 	uint32_t read_sects;
 	uint32_t n_trimmed_pages = 0;
 
@@ -271,7 +269,7 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 
 	uint32_t remain = length;
 	uint32_t left_skip = sector_nb % SECTORS_PER_PAGE;
-	uint32_t right_skip;
+	uint32_t right_skip = 0;
 	uint32_t write_sects;
 
 	int ret = FAIL;

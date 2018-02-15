@@ -255,6 +255,9 @@ void FIRM_WRITE_EVENT(event_queue_entry* w_entry, bool flush)
 
 	w_entry->flush = flush;
 
+	/* Insert the current event to the per-core queue */
+	INSERT_RW_TO_PER_CORE_EVENT_QUEUE(w_entry, write_buffer_index);
+
 	if(flush){
 		/* Insert the current event to the candidate event queue */
 		INSERT_TO_CANDIDATE_EVENT_QUEUE(w_entry);
@@ -267,9 +270,6 @@ void FIRM_WRITE_EVENT(event_queue_entry* w_entry, bool flush)
 		/* Return immediately to the host */
 		UPDATE_EVENT_STATE(w_entry, COMPLETED);	
 	}
-	
-	/* Insert the current event to the per-core queue */
-	INSERT_RW_TO_PER_CORE_EVENT_QUEUE(w_entry, write_buffer_index);
 
 	/* Wake up the IO thread */
 	WAKEUP_ALL_IO_THREADS();
@@ -732,6 +732,32 @@ int GET_EVENT_STATE(event_queue_entry* eq_entry)
 	return e_state;
 }
 
+int GET_N_IO_PAGES(uint64_t sector_nb, uint32_t length)
+{
+	uint32_t remains = length;
+	uint32_t sects = 0;
+	uint64_t left_skip = sector_nb % SECTORS_PER_PAGE;
+	uint64_t right_skip = 0;
+	uint32_t n_pages = 0;
+
+	while(remains > 0){
+		
+		if(remains > SECTORS_PER_PAGE - left_skip){
+			right_skip = 0;
+		}
+		else{
+			right_skip = SECTORS_PER_PAGE - left_skip - remains;
+		}
+		sects = SECTORS_PER_PAGE - left_skip - right_skip;
+
+		/* Update the local variables */
+		n_pages++;
+		remains -= sects;
+		left_skip = 0;
+	}
+
+	return n_pages;
+}
 
 int GET_WRITE_BUFFER_TO_FLUSH(int core_id, int* w_buf_index)
 {

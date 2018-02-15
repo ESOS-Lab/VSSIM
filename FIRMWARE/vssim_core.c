@@ -107,7 +107,7 @@ void INIT_VSSIM_CORE(void)
 				vs_core[i].n_gc_high_watermark_blocks =
 						(int)((double)N_BLOCKS_PER_FLASH
 						* (1-GC_HIGH_WATERMARK_RATIO));
-				}
+			}
 			else if(gc_mode == PLANE_GC){
 
 		                /* Carculate GC Threhold for Plane */

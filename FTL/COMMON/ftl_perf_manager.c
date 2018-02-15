@@ -38,6 +38,7 @@ int64_t log_erase_val;
 /* SSD Util */
 double ssd_util;
 int64_t n_total_written_pages;
+pthread_mutex_t log_lock = PTHREAD_MUTEX_INITIALIZER; 
 
 int INIT_PERF_CHECKER(void){
 	
@@ -177,6 +178,8 @@ void UPDATE_LOG(int log_type, int64_t arg)
 {
 	static int64_t recent_update_time = 0;
 
+	pthread_mutex_lock(&log_lock);
+
 	switch(log_type){
 		case LOG_READ_PAGE:
 			log_read_page_val += arg;
@@ -211,6 +214,8 @@ void UPDATE_LOG(int log_type, int64_t arg)
 		recent_update_time = current_time;
 		SEND_LOG_TO_MONITOR();
 	}
+
+	pthread_mutex_unlock(&log_lock);
 }
 
 

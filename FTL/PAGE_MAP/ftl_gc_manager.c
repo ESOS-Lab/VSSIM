@@ -9,8 +9,6 @@
 
 unsigned int gc_count = 0;
 
-extern double ssd_util;
-
 int GET_GC_LOCK(plane_info* cur_plane)
 {
 	int ret = -1;
@@ -153,6 +151,19 @@ int PLANE_GARBAGE_COLLECTION(plane_info* cur_plane)
 	if(victim_block == NULL)
 		return FAIL;
 
+	/* Check the validity of the address */
+	pbn_t victim_pbn = victim_block->pbn;
+	int32_t flash = (int32_t)victim_pbn.path.flash;
+	int32_t plane = (int32_t)victim_pbn.path.plane;
+	int32_t block = (int32_t)victim_pbn.path.block;
+
+	if(flash >= N_FLASH || plane >= N_PLANES_PER_FLASH
+			|| block >= N_BLOCKS_PER_PLANE){
+		printf("ERROR[%s] Wrong victim block: f %d, p %d, b %d\n", 
+				__FUNCTION__, flash, plane, block);
+		return FAIL;
+	}
+
 	/* Do garbage Collection */
 	ret = GARBAGE_COLLECTION(victim_block);
 
@@ -247,10 +258,10 @@ int GARBAGE_COLLECTION(block_entry* victim_entry)
 
 	/* Move the victim block from victim list to empty list */
 	POP_VICTIM_BLOCK(core_id, victim_entry);
-	INSERT_EMPTY_BLOCK(core_id, victim_entry);
 
 	/* Set the victim block as EMPTY_BLOCK */
 	UPDATE_BLOCK_STATE(victim_pbn, EMPTY_BLOCK);
+	INSERT_EMPTY_BLOCK(core_id, victim_entry);
 
 	gc_count++;
 

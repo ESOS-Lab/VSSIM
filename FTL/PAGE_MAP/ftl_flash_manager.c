@@ -1067,7 +1067,7 @@ int64_t GET_INVERSE_MAPPING_INFO(ppn_t ppn)
 {
 	int64_t flash_nb = (int64_t)ppn.path.flash;
 	int64_t plane_nb = (int64_t)ppn.path.plane;
-	int64_t index = (int64_t)(ppn.path.block * ppn.path.page);
+	int64_t index = (int64_t)(ppn.path.block * N_PAGES_PER_BLOCK + ppn.path.page);
 
 	return flash_i[flash_nb].plane_i[plane_nb].inverse_mapping_table[index];
 }
@@ -1076,18 +1076,14 @@ int UPDATE_INVERSE_MAPPING(ppn_t ppn,  int64_t lpn)
 {
 	int64_t flash_nb = (int64_t)ppn.path.flash;
 	int64_t plane_nb = (int64_t)ppn.path.plane;
-	int64_t index = ppn.path.block * ppn.path.page;
+	int64_t index = (int64_t)(ppn.path.block * N_PAGES_PER_BLOCK + ppn.path.page);
 
 	if(index < 0 || index > N_PAGES_PER_PLANE){
 		printf("ERROR[%s] wrong index: block %d, page %d\n",
 				__FUNCTION__, ppn.path.block, ppn.path.page);
 	}
 
-#ifdef FTL_MAP_CACHE
-	CACHE_UPDATE_LPN(lpn, ppn);
-#else
 	flash_i[flash_nb].plane_i[plane_nb].inverse_mapping_table[index] = lpn;
-#endif
 
 	return SUCCESS;
 }
