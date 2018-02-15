@@ -18,6 +18,7 @@ typedef void CallbackFunc(void *opaque, int ret);
 typedef struct core_req_entry
 {
 	enum vssim_io_type io_type;
+	uint64_t seq_nb;
 	uint64_t sector_nb;
 	uint32_t length;
 	void* buf;

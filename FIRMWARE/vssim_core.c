@@ -674,6 +674,7 @@ core_req_entry* CREATE_NEW_CORE_EVENT(event_queue_entry* eq_entry,
 		return NULL;
 	}
 
+	new_cr_entry->seq_nb	= eq_entry->seq_nb;
 	new_cr_entry->io_type	= eq_entry->io_type;
 	new_cr_entry->sector_nb = sector_nb;
 	new_cr_entry->length	= length;

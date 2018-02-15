@@ -65,8 +65,17 @@ void FGGC_CHECK(int core_id)
 	flash_info* init_flash_i = &flash_i[cur_core->flash_index];
 	flash_info* cur_flash = &flash_i[cur_core->flash_index];
 
+#ifdef FTL_DEBUG
+	printf("[%s] %d core: start\n", __FUNCTION__, core_id);
+#endif
+
 	/* Check all the flash list of the core */
 	do{
+
+#ifdef FTL_DEBUG
+		printf("[%s] %d core: check %d flash, %d plane need FG_GC\n", __FUNCTION__,
+				core_id, cur_flash->flash_nb, n_fggc_planes);
+#endif
 		for(plane_index=0; plane_index<N_PLANES_PER_FLASH; plane_index++){
 
 			/* Get the state of the plane */
@@ -75,6 +84,12 @@ void FGGC_CHECK(int core_id)
 
 			/* If the plane needs to perform foreground GC, */
 			if(plane_state == NEED_FGGC){
+
+#ifdef FTL_DEBUG
+				printf("[%s] %d core: f %d, p %d need GC\n",
+					__FUNCTION__, core_id, cur_flash->flash_nb,
+					plane_index);
+#endif
 
 				UPDATE_PLANE_STATE(core_id, cur_plane, ON_GC);
 
@@ -97,6 +112,10 @@ void FGGC_CHECK(int core_id)
 			break;
 
 	}while(cur_flash != init_flash_i);	
+
+#ifdef FTL_DEBUG
+	printf("[%s] %d core: check flash complete\n", __FUNCTION__, core_id);
+#endif
 }
 
 void CHECK_EMPTY_BLOCKS(int core_id, pbn_t pbn)
@@ -246,7 +265,8 @@ int GARBAGE_COLLECTION(block_entry* victim_entry)
 	}
 
 	if(n_copies != n_valid_pages){
-		printf("ERROR[%s] The number of valid page is not correct\n", __FUNCTION__);
+		printf("ERROR[%s] The number of valid page is not correct: %d != %d\n",
+			 __FUNCTION__, n_copies, n_valid_pages);
 		return FAIL;
 	}
 
@@ -271,55 +291,6 @@ int GARBAGE_COLLECTION(block_entry* victim_entry)
 #endif
 
 	return SUCCESS;
-}
-
-block_entry* SELECT_VICTIM_BLOCK_FROM_FLASH(flash_info* cur_flash)
-{
-	int i;
-	uint32_t n_valid_pages;
-
-	plane_info* cur_plane;
-	block_state_entry* bs_entry;
-	block_entry* cur_block_entry = NULL;
-	block_entry* ret_block_entry = NULL;
-
-	for(i=0; i<N_PLANES_PER_FLASH; i++){
-	
-		cur_plane = &cur_flash->plane_i[i];
-
-		/* Get the victim block in the plane */
-		cur_block_entry = SELECT_VICTIM_BLOCK_FROM_PLANE(cur_plane);
-		if(cur_block_entry == NULL)
-			continue;
-
-		/* Get block state of the current block */
-		bs_entry = GET_BLOCK_STATE_ENTRY(cur_block_entry->pbn);
-
-		/* Compare the victim block */
-		if(ret_block_entry != NULL){
-
-			/* Select victim block: Greedy algorithm */
-			if(n_valid_pages > bs_entry->n_valid_pages){
-				ret_block_entry = cur_block_entry;
-				n_valid_pages = bs_entry->n_valid_pages;
-			}
-		}
-		else{
-			/* First selected victim candidate block */
-			ret_block_entry = cur_block_entry;
-			n_valid_pages = bs_entry->n_valid_pages;
-		}
-
-		/* If current block is dead block, return immediately */
-		if(n_valid_pages == 0)
-			break;
-	}
-
-	if(ret_block_entry == NULL || n_valid_pages == N_PAGES_PER_BLOCK){
-		ret_block_entry = NULL;
-	}
-
-	return ret_block_entry;
 }
 
 block_entry* SELECT_VICTIM_BLOCK_FROM_PLANE(plane_info* cur_plane)

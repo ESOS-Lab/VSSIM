@@ -112,22 +112,23 @@ int COPY_BITMAP_MASK(bitmap_t dst_bitmap, uint32_t dst_index,
 		printf("ERROR[%s] bitmap is NULL!\n", __FUNCTION__);
 		return FAIL;
 	}
-	else if(dst_index > N_PAGES_PER_BLOCK || src_index > N_PAGES_PER_BLOCK){
+	else if(dst_index >= N_PAGES_PER_BLOCK || src_index >= N_PAGES_PER_BLOCK){
 		printf("ERROR[%s] Exceed the bitmap range: dst_index: %d,\
 				src_index: %d\n",
 				__FUNCTION__, dst_index, src_index);
 	}
 
-	uint32_t bitmap_index = (dst_index * N_4K_PAGES) / N_BITS;
-	uint32_t offset = (dst_index * N_4K_PAGES) % N_BITS;
+	uint32_t bitmap_index = (src_index * N_4K_PAGES) / N_BITS;
+	uint32_t offset = (src_index * N_4K_PAGES) % N_BITS;
 	uint32_t mask = bitmap_mask << offset;
 
-	uint32_t dst_bits = mask & dst_bitmap[bitmap_index];
+	uint32_t src_bits = mask & src_bitmap[bitmap_index];
+	src_bits = src_bits >> offset;
 
-	bitmap_index = (src_index * N_4K_PAGES) / N_BITS;
-	offset = (src_index * N_4K_PAGES) % N_BITS;
+	bitmap_index = (dst_index * N_4K_PAGES) / N_BITS;
+	offset = (dst_index * N_4K_PAGES) % N_BITS;
 	
-	src_bitmap[bitmap_index] |= (dst_bits << offset);
+	dst_bitmap[bitmap_index] |= (src_bits << offset);
 
 	return 0;
 }

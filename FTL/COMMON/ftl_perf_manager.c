@@ -209,7 +209,15 @@ void UPDATE_LOG(int log_type, int64_t arg)
 	int64_t current_time = get_usec();
 	if(current_time - recent_update_time >= UPDATE_FREQUENCY){
 
-		ssd_util = (double)((double)n_total_written_pages / N_TOTAL_PAGES)*100;
+		int i;
+		int n_empty_blocks = 0;
+
+		for(i=0; i<N_IO_CORES; i++){
+			n_empty_blocks += n_total_empty_blocks[i];
+		}
+
+//		ssd_util = (double)((double)n_total_written_pages / N_TOTAL_PAGES)*100;
+		ssd_util = (double)(((double)N_TOTAL_BLOCKS - n_empty_blocks)/N_TOTAL_BLOCKS)*100;
 
 		recent_update_time = current_time;
 		SEND_LOG_TO_MONITOR();

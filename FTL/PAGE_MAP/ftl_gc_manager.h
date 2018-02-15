@@ -23,7 +23,6 @@ int PLANE_GARBAGE_COLLECTION(plane_info* plane_i);
 int GARBAGE_COLLECTION(block_entry* victim_entry);
 
 block_entry* SELECT_VICTIM_BLOCK(void);
-block_entry* SELECT_VICTIM_BLOCK_FROM_FLASH(flash_info* flash_i);
 block_entry* SELECT_VICTIM_BLOCK_FROM_PLANE(plane_info* plane_i);
 
 void INCREASE_SLEEP_TIME(long* t_sleep_ms);

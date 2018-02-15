@@ -887,7 +887,7 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 
 #ifdef IO_CORE_DEBUG
 		printf("[%s] core %d: %lu-th event dequeue\n",
-			__FUNCTION__, core_id, cr_entry->parent->seq_nb);
+			__FUNCTION__, core_id, cr_entry->seq_nb);
 #endif
 
 		/* Write data to Flash memory */
@@ -895,7 +895,7 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 
 #ifdef IO_CORE_DEBUG
 		printf("[%s] core %d: %lu-th event FTL write complete\n",
-			__FUNCTION__, core_id, cr_entry->parent->seq_nb);
+			__FUNCTION__, core_id, cr_entry->seq_nb);
 #endif
 
 		/* post processing */

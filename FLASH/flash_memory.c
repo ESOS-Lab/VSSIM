@@ -175,16 +175,19 @@ int FLASH_STATE_CHECKER(int core_id)
 			}
 
 //TEMP
-//			if(cur_plane->data_reg.state != REG_NOOP || cur_plane->page_cache.state != REG_NOOP){
-//				printf("[%s] %d f: %d plane (cmd %u) data state: %d (%ld), cache state: %d (%ld), index: %d / %d\n", 
-//						__FUNCTION__, cur_flash->flash_nb, i, cur_plane->cmd,
-//						cur_plane->data_reg.state, 
-//						cur_plane->data_reg.t_end - t_now,
-//						cur_plane->page_cache.state,
-//						cur_plane->page_cache.t_end - t_now,
-//						cur_plane->index,
-//						cur_plane->n_entries);
-//			}
+/*
+			if(cur_plane->data_reg.state != REG_NOOP){
+				printf("[%s] %d core : f %d p %d (cmd %u) data state: %d (%ld), cache state: %d (%ld), index: %d / %d\n", 
+						__FUNCTION__, core_id, 
+						cur_flash->flash_nb, i, cur_plane->cmd,
+						cur_plane->data_reg.state, 
+						cur_plane->data_reg.t_end - t_now,
+						cur_plane->page_cache.state,
+						cur_plane->page_cache.t_end - t_now,
+						cur_plane->index,
+						cur_plane->n_entries);
+			}
+*/
 		}
 		cur_flash = cur_flash->next;
 
@@ -385,20 +388,6 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 				data_reg->ppn.addr = -1;
 				data_reg->t_end = -1;
 
-				if(cmd == CMD_PAGE_COPYBACK_PHASE2){
-					ppn_t src_ppn = data_reg->copyback_ppn;
-					int src_flash_nb = src_ppn.path.flash;
-					int src_plane_nb = src_ppn.path.plane;
-					plane* src_plane = &flash[src_flash_nb].plane[src_plane_nb];
-					reg* src_reg = &src_plane->data_reg;
-
-					src_reg->ppn.addr = -1;
-					src_reg->state = REG_NOOP;
-					src_reg->t_end = -1;
-
-					src_plane->cmd = CMD_NOOP;
-				}
-
 				/* Initialized current plane */	
 				if(PAGE_CACHE_REG_ENABLE){
 					if(page_cache->state == REG_NOOP)
@@ -446,6 +435,12 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					}
 					else{
 						FLASH_PAGE_COPYBACK_PHASE2(dst_ppn, data_reg->ppn);
+
+						data_reg->ppn.addr = -1;
+						data_reg->state = REG_NOOP;
+						data_reg->t_end = -1;
+
+						cur_plane->cmd = CMD_NOOP;
 					}
 				}
 			}
@@ -864,7 +859,8 @@ int FLASH_PAGE_COPYBACK(ppn_t dst_ppn, ppn_t src_ppn)
 
 	/* Get ppn list index */
 	index = cur_plane->n_entries;
-	if(index >= N_PPNS_PER_PLANE){
+
+	if(index != 0){
 		printf("ERROR[%s] Exceed ppn list index: %u\n",
 				__FUNCTION__, index);
 		return FAIL;
@@ -917,7 +913,7 @@ int FLASH_BLOCK_ERASE(pbn_t pbn)
 
 	/* Get ppn list index */
 	index = cur_plane->n_entries;
-	if(index >= N_PPNS_PER_PLANE){
+	if(index != 0){
 		printf("ERROR[%s] Exceed ppn list index: %u\n",
 				__FUNCTION__, index);
 		return FAIL;

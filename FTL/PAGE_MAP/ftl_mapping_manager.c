@@ -190,12 +190,14 @@ int PARTIAL_UPDATE_PAGE_MAPPING(int core_id, int64_t lpn, ppn_t new_ppn,
 			src_bs_entry->valid_array, src_index);
 
 	/* Validate sectors from left_skip to rigth skip */
-	while(length > 0){
-		SET_BITMAP(dst_bs_entry->valid_array, dst_index * N_4K_PAGES + offset);
+	if(left_skip != 0 || right_skip != 0){
+		while(length > 0){
+			SET_BITMAP(dst_bs_entry->valid_array, dst_index * N_4K_PAGES + offset);
 
-		length -= (SECTORS_PER_4K_PAGE - left_skip);
-		left_skip = 0;
-		offset++;
+			length -= (SECTORS_PER_4K_PAGE - left_skip);
+			left_skip = 0;
+			offset++;
+		}
 	}
 
 	/* Invalidate old ppn */
