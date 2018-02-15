@@ -1096,13 +1096,14 @@ int UPDATE_BLOCK_STATE(pbn_t pbn, int type)
 	bs_entry->type = type;
 	
         if(type == EMPTY_BLOCK){
-		/* Initialize the number of valid pages */
-		bs_entry->n_valid_pages = 0;
 
 		/* Fill zeros to the valid array */
                 for(i=0; i<N_PAGES_PER_BLOCK; i++){
                         UPDATE_BLOCK_STATE_ENTRY(pbn, i, INVALID);
                 }
+
+		/* Initialize the number of valid pages */
+		bs_entry->n_valid_pages = 0;
         }
 
         return SUCCESS;
