@@ -1048,13 +1048,13 @@ void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages)
 
 		n_completed_pages += FLASH_STATE_CHECKER(core_id);
 
-		usleep(2);
+//		usleep(1);
 	}
 
 //TEMP
 	int64_t end = get_usec();
 	if(n_io_pages > 0){
-		fprintf(fp_io, "%d\t%d\t%lu\n", io_type, n_io_pages, end-start);
+		fprintf(fp_io, "%d\t%d\t%d\t%lu\n", core_id, io_type, n_io_pages, end-start);
 	}
 	fclose(fp_io);
 

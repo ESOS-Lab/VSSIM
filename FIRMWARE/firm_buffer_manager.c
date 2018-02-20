@@ -609,6 +609,7 @@ void ENQUEUE_IO(event_queue_entry* new_entry)
 	if(e_queue->entry_nb == 0){
 		e_queue->head = new_entry;
 		e_queue->tail = new_entry;
+
 		if(io_type == READ)
 			last_read_entry = new_entry;
 	}
@@ -706,6 +707,7 @@ event_queue_entry* CREATE_NEW_EVENT(int io_type, uint64_t slba, uint32_t nlb, vo
 void UPDATE_EVENT_STATE(event_queue_entry* eq_entry, enum event_state state)
 {
 	enum event_state old_state = eq_entry->e_state;
+
 	if(old_state == state){
 		printf("ERROR[%s] %lu-th event (%d io_type, f %d, nch %d, ncp %d, nt %d) is already in the state %d\n", 
 				__FUNCTION__, eq_entry->seq_nb, eq_entry->io_type, 

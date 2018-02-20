@@ -54,6 +54,13 @@ enum event_state{
 	DONE_READ_DMA
 };
 
+typedef struct event_queue
+{
+	int entry_nb;
+	struct event_queue_entry* head;
+	struct event_queue_entry* tail;
+}event_queue;
+
 typedef struct event_queue_entry
 {
 	uint64_t seq_nb;
@@ -62,6 +69,7 @@ typedef struct event_queue_entry
 	int valid;
 	uint64_t sector_nb;
 	uint32_t length;
+	uint32_t ori_length;
 	CallbackFunc *cb;
 	void* opaque;
 	void* buf;
@@ -81,13 +89,6 @@ typedef struct event_queue_entry
 	struct event_queue_entry* next;
 
 }event_queue_entry;
-
-typedef struct event_queue
-{
-	int entry_nb;
-	event_queue_entry* head;
-	event_queue_entry* tail;
-}event_queue;
 
 void INIT_IO_BUFFER(void);
 void TERM_IO_BUFFER(void);
@@ -116,6 +117,7 @@ void FIRM_FLUSH_EVENT(event_queue_entry* eq_entry);
 
 void* CHECK_WRITE_BUFFER(int core_id, uint64_t lba, uint32_t read_sects);
 void DMA_FROM_HOST_TO_BUFFER(event_queue_entry* w_entry, int w_buf_index);
+void DO_DMA_FROM_HOST_TO_BUFFER(event_queue_entry* w_entry, int w_buf_index);
 void BUF_FILL_ZEROS(event_queue_entry* eq_entry);
 void FLUSH_EVENT_QUEUE_UNTIL(event_queue_entry* e_q_entry);
 
