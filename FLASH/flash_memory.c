@@ -54,6 +54,14 @@ int INIT_FLASH(void){
 				for(j=0; j<N_PLANES_PER_FLASH; j++){
 
 					flash[i].plane[j].cmd = CMD_NOOP;
+
+					/* Init Flash I/O delay */
+					flash[i].plane[j].reg_cmd_set_delay = REG_CMD_SET_DELAY;
+					flash[i].plane[j].reg_write_delay = REG_WRITE_DELAY;
+					flash[i].plane[j].page_program_delay = PAGE_PROGRAM_DELAY;
+					flash[i].plane[j].reg_read_delay = REG_READ_DELAY;
+					flash[i].plane[j].page_read_delay = PAGE_READ_DELAY;
+					flash[i].plane[j].block_erase_delay = BLOCK_ERASE_DELAY;
 				}	
 			}
 		}
@@ -231,7 +239,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 				/* Get next available channel access time */
 				data_reg->t_end = GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(channel_nb,
-							t_now, next_cmd, SET_CMD1);
+							t_now, next_cmd, cur_plane, SET_CMD1);
 
 				if(data_reg->t_end <= t_now){
 
@@ -239,7 +247,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					data_reg->state = SET_CMD1;
 					data_reg->ppn = next_ppn;
 					data_reg->copyback_ppn = copyback_ppn;
-					data_reg->t_end = t_now + REG_CMD_SET_DELAY;
+					data_reg->t_end = t_now + cur_plane->reg_cmd_set_delay;
 
 					/* Update plane */
 					cur_plane->cmd = next_cmd;
@@ -263,31 +271,31 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 					/* Update register  */
 					data_reg->state = PAGE_READ;
-					data_reg->t_end = t_now + PAGE_READ_DELAY;
+					data_reg->t_end = t_now + cur_plane->page_read_delay;
 				}
 				else if(cmd == CMD_PAGE_PROGRAM){
 
 					/* Update register  */
 					data_reg->state = REG_WRITE;
-					data_reg->t_end = t_now + REG_WRITE_DELAY;
+					data_reg->t_end = t_now + cur_plane->reg_write_delay;
 				}
 				else if(cmd == CMD_BLOCK_ERASE){
 
 					/* Update register  */
 					data_reg->state = BLOCK_ERASE;
-					data_reg->t_end = t_now + BLOCK_ERASE_DELAY;
+					data_reg->t_end = t_now + cur_plane->block_erase_delay;
 				}
 				else if(cmd == CMD_PAGE_COPYBACK){
 
 					/* Update register  */
 					data_reg->state = PAGE_READ;
-					data_reg->t_end = t_now + PAGE_READ_DELAY;
+					data_reg->t_end = t_now + cur_plane->page_read_delay;
 				}
 				else if(cmd == CMD_PAGE_COPYBACK_PHASE2){
 
 					/* Update register  */
 					data_reg->state = PAGE_PROGRAM;
-					data_reg->t_end = t_now + PAGE_PROGRAM_DELAY;
+					data_reg->t_end = t_now + cur_plane->page_program_delay;
 				}
 			}
 			break;
@@ -298,13 +306,13 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 					/* Update register  */
 					data_reg->state = REG_READ;
-					data_reg->t_end = t_now + REG_READ_DELAY;
+					data_reg->t_end = t_now + cur_plane->reg_read_delay;
 				}
 				else if(cmd == CMD_PAGE_PROGRAM){
 
 					/* Update register  */
 					data_reg->state = PAGE_PROGRAM;
-					data_reg->t_end = t_now + PAGE_PROGRAM_DELAY;
+					data_reg->t_end = t_now + cur_plane->page_program_delay;
 				}
 				else if(cmd == CMD_PAGE_COPYBACK){
 
@@ -318,7 +326,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					if(dst_plane == cur_plane){
 						data_reg->ppn = dst_ppn;
 						data_reg->state = PAGE_PROGRAM;
-						data_reg->t_end = t_now + PAGE_PROGRAM_DELAY;
+						data_reg->t_end = t_now + cur_plane->page_program_delay;
 					}
 					else{
 						reg* dst_reg = &dst_plane->data_reg;
@@ -330,7 +338,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 							/* Update destination reg */
 							dst_reg->ppn = dst_ppn;
 							dst_reg->state = PAGE_PROGRAM; 
-							dst_reg->t_end = t_now + PAGE_PROGRAM_DELAY;
+							dst_reg->t_end = t_now + cur_plane->page_program_delay;
 
 							dst_plane->cmd = CMD_PAGE_COPYBACK;
 
@@ -352,7 +360,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 				/* Update register  */
 				data_reg->state = SET_CMD2;
-				data_reg->t_end = t_now + REG_CMD_SET_DELAY;
+				data_reg->t_end = t_now + cur_plane->reg_cmd_set_delay;
 			}
 
 			break;
@@ -406,13 +414,14 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 			if(data_reg->t_end <= t_now){
 
 				if(cmd == CMD_PAGE_READ){
-					data_reg->t_end = GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(channel_nb, t_now, cmd, PAGE_READ);
+					data_reg->t_end = GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(channel_nb, 
+								t_now, cmd, cur_plane, PAGE_READ);
 
 					if(data_reg->t_end <= t_now){
 					
 						/* Update state */
 						data_reg->state = SET_CMD2;
-						data_reg->t_end = t_now + REG_CMD_SET_DELAY;
+						data_reg->t_end = t_now + cur_plane->reg_cmd_set_delay;
 					}
 					else{
 						/* Update state */
@@ -429,13 +438,15 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					plane* dst_plane = &flash[dst_flash_nb].plane[dst_plane_nb];
 	
 					if(dst_plane == cur_plane){
+						/* Start copyback immediately */
 						data_reg->ppn = dst_ppn;
 						data_reg->state = PAGE_PROGRAM;
-						data_reg->t_end = t_now + PAGE_PROGRAM_DELAY;		
+						data_reg->t_end = t_now + cur_plane->page_program_delay;		
 					}
 					else{
 						FLASH_PAGE_COPYBACK_PHASE2(dst_ppn, data_reg->ppn);
 
+						/* Reset the current register */
 						data_reg->ppn.addr = -1;
 						data_reg->state = REG_NOOP;
 						data_reg->t_end = -1;
@@ -469,7 +480,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 				
 				/* Update state */
 				data_reg->state = SET_CMD1;
-				data_reg->t_end = t_now + REG_CMD_SET_DELAY;
+				data_reg->t_end = t_now + cur_plane->reg_cmd_set_delay;
 			}
 			break;
 
@@ -480,7 +491,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 					/* Update state */
 					data_reg->state = SET_CMD2;
-					data_reg->t_end = t_now + REG_CMD_SET_DELAY;
+					data_reg->t_end = t_now + cur_plane->reg_cmd_set_delay;
 				}
 			}
 			break;
@@ -531,7 +542,7 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 				/* Get next available channel access time */
 				page_cache->t_end = GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(channel_nb,
-							t_now, next_cmd, SET_CMD1);
+							t_now, next_cmd, cur_plane, SET_CMD1);
 
 				if(page_cache->t_end <= t_now){
 
@@ -539,7 +550,7 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					page_cache->state = SET_CMD1;
 					page_cache->ppn = next_ppn;
 					page_cache->copyback_ppn = copyback_ppn;
-					page_cache->t_end = t_now + REG_CMD_SET_DELAY;
+					page_cache->t_end = t_now + cur_plane->reg_cmd_set_delay;
 
 					/* Update plane */
 					cur_plane->cmd = next_cmd;
@@ -562,27 +573,26 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 					/* Update register  */
 					page_cache->state = PAGE_READ;
-					page_cache->t_end = t_now + PAGE_READ_DELAY;
+					page_cache->t_end = t_now + cur_plane->page_read_delay;
 				}
 				else if(cmd == CMD_PAGE_PROGRAM){
 
 					/* Update register  */
 					page_cache->state = REG_WRITE;
-					page_cache->t_end = t_now + REG_WRITE_DELAY;
+					page_cache->t_end = t_now + cur_plane->reg_write_delay;
 				}
 				else if(cmd == CMD_BLOCK_ERASE){
 
 					/* Update register  */
 					page_cache->state = BLOCK_ERASE;
-					page_cache->t_end = t_now + BLOCK_ERASE_DELAY;
+					page_cache->t_end = t_now + cur_plane->block_erase_delay;
 				}
 				else if(cmd == CMD_PAGE_COPYBACK){
 
 					/* Update register  */
 					page_cache->state = PAGE_READ;
-					page_cache->t_end = t_now + PAGE_READ_DELAY;
+					page_cache->t_end = t_now + cur_plane->page_read_delay;
 				}
-	
 			}
 			break;
 
@@ -600,7 +610,7 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 						/* Set data register */
 						cur_plane->cmd = CMD_PAGE_PROGRAM;
-						data_reg->t_end = t_now + PAGE_PROGRAM_DELAY;
+						data_reg->t_end = t_now + cur_plane->page_program_delay;
 						data_reg->state = PAGE_PROGRAM;
 
 						/* Initialize page cache */
@@ -621,7 +631,7 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 						/* Update destination reg */
 						page_cache->ppn = dst_ppn;
 						page_cache->state = PAGE_PROGRAM;
-						page_cache->t_end = t_now + PAGE_PROGRAM_DELAY;
+						page_cache->t_end = t_now + cur_plane->page_program_delay;
 					}
 					else{
 						reg* dst_reg = &dst_plane->page_cache;
@@ -635,7 +645,7 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 							/* Update destination reg */
 							dst_reg->ppn = dst_ppn;
 							dst_reg->state = PAGE_PROGRAM; 
-							dst_reg->t_end = t_now + PAGE_PROGRAM_DELAY;
+							dst_reg->t_end = t_now + cur_plane->page_program_delay;
 							dst_plane->cmd = CMD_PAGE_COPYBACK;
 
 							/* Init current reg */
@@ -655,7 +665,7 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 					/* Update register  */
 					page_cache->state = SET_CMD2;
-					page_cache->t_end = t_now + REG_CMD_SET_DELAY;
+					page_cache->t_end = t_now + cur_plane->reg_cmd_set_delay;
 				}
 			}
 
@@ -679,7 +689,8 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					int src_plane_nb = src_ppn.path.plane;
 					plane* src_plane = &flash[src_flash_nb].plane[src_plane_nb];
 					reg* src_reg = &src_plane->page_cache;
-	
+
+					/* Init current register */	
 					src_reg->ppn.addr = -1;
 					src_reg->state = REG_NOOP;
 					src_reg->t_end = -1;
@@ -725,7 +736,7 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					if(dst_plane == cur_plane){
 						page_cache->ppn = dst_ppn;
 						page_cache->state = PAGE_PROGRAM;
-						page_cache->t_end = t_now + PAGE_PROGRAM_DELAY;		
+						page_cache->t_end = t_now + cur_plane->page_program_delay;		
 					}
 					else{
 						FLASH_PAGE_COPYBACK_PHASE2(dst_ppn, data_reg->ppn);
@@ -756,7 +767,7 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 				
 				/* Update state */
 				page_cache->state = SET_CMD1;
-				page_cache->t_end = t_now + REG_CMD_SET_DELAY;
+				page_cache->t_end = t_now + cur_plane->reg_cmd_set_delay;
 			}
 			break;
 
@@ -766,7 +777,7 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					COPY_PAGE_CACHE_TO_DATA_REG(data_reg, page_cache);
 
 					/* Set data register */
-					data_reg->t_end = t_now + PAGE_PROGRAM_DELAY;
+					data_reg->t_end = t_now + cur_plane->page_program_delay;
 					data_reg->state = PAGE_PROGRAM;
 					cur_plane->cmd = CMD_PAGE_PROGRAM;
 
@@ -928,46 +939,6 @@ int FLASH_BLOCK_ERASE(pbn_t pbn)
 	return SUCCESS;
 }
 
-void SET_CMD2_TO_REG(plane* cur_plane, uint8_t cmd, ppn_t ppn)
-{
-	int64_t t_now;
-	reg* cur_reg = NULL;
-
-	cur_reg = &cur_plane->data_reg;
-
-	/* Busy waiting */
-	while(cur_reg->state != REG_NOOP){}
-
-	/* Update state */
-	cur_reg->state = SET_CMD2;
-
-	/* Update register */
-	cur_plane->cmd = cmd;
-	cur_reg->ppn = ppn;
-
-	/* Transfer Command1 */
-	t_now = BUSY_WAITING_USEC(get_usec() + REG_CMD_SET_DELAY);
-
-	switch(cmd){
-
-	case CMD_PAGE_COPYBACK:
-
-		/* Update end time of this state */
-		cur_reg->t_end = t_now + PAGE_PROGRAM;
-
-		/* Update register */
-		cur_reg->state = PAGE_PROGRAM; 
-
-		break;
-
-	default:
-		printf("ERROR [%s] Wrong flash command: %d\n",
-				__FUNCTION__, cmd);
-		break;
-	}
-}
-
-
 void COPY_PAGE_CACHE_TO_DATA_REG(reg* dst_reg, reg* src_reg)
 {
 	dst_reg->ppn = src_reg->ppn;
@@ -985,7 +956,7 @@ int64_t BUSY_WAITING_USEC(int64_t t_end)
 }
 
 int64_t GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(int channel_nb, int64_t t_now, 
-			uint8_t cmd, enum reg_state cur_state)
+			uint8_t cmd, plane* cur_plane,  enum reg_state cur_state)
 {
 	int64_t t_next_idle;
 	int64_t t_ret;
@@ -1004,25 +975,26 @@ int64_t GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(int channel_nb, int64_t t_now,
 
 	/* Update next available channel time */
 	if(cur_state == SET_CMD1 && cmd == CMD_PAGE_PROGRAM){
-		t_update = REG_CMD_SET_DELAY * 2 + REG_WRITE_DELAY;
+		t_update = cur_plane->reg_cmd_set_delay * 2 + cur_plane->reg_write_delay;
 	}
 	else if(cur_state == SET_CMD1 && cmd == CMD_PAGE_READ){
-		t_update = REG_CMD_SET_DELAY;
+		t_update = cur_plane->reg_cmd_set_delay;
 	}
 	else if(cur_state == SET_CMD1 && cmd == CMD_PAGE_COPYBACK){
-		t_update = REG_CMD_SET_DELAY;
+		t_update = cur_plane->reg_cmd_set_delay;
 	}
 	else if(cur_state == SET_CMD1 && cmd == CMD_BLOCK_ERASE){
-		t_update = REG_CMD_SET_DELAY;
+		t_update = cur_plane->reg_cmd_set_delay;
 	}
 	else if(cur_state == SET_CMD1 && cmd == CMD_PAGE_COPYBACK_PHASE2){
-		t_update = REG_CMD_SET_DELAY;
+		t_update = cur_plane->reg_cmd_set_delay;
 	}
 	else if(cur_state == PAGE_READ && cmd == CMD_PAGE_COPYBACK){
-		t_update = REG_CMD_SET_DELAY;
+		t_update = cur_plane->reg_cmd_set_delay;
 	}
 	else if(cur_state == PAGE_READ){
-		t_update = REG_CMD_SET_DELAY + REG_READ_DELAY;
+		t_update = cur_plane->reg_cmd_set_delay
+					+ cur_plane->reg_read_delay;
 	}
 	else{
 		printf("ERROR[%s] Wrong cmd(%d) and state (%d)!\n",
@@ -1039,24 +1011,125 @@ void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages)
 {
 	int n_completed_pages = 0;
 
-//TEMP
+#ifdef IO_PERF_DEBUG
 	FILE* fp_io = fopen("./META/io.dat", "a");
 	int64_t start = get_usec();
+#endif
 
 	/* Wait all inflight Flash IOs */
 	while(n_completed_pages != n_io_pages){
 
 		n_completed_pages += FLASH_STATE_CHECKER(core_id);
-
-//		usleep(1);
 	}
 
-//TEMP
+#ifdef IO_PERF_DEBUG
 	int64_t end = get_usec();
 	if(n_io_pages > 0){
 		fprintf(fp_io, "%d\t%d\t%d\t%lu\n", core_id, io_type, n_io_pages, end-start);
 	}
 	fclose(fp_io);
+#endif
 
 	return;
+}
+
+int64_t SET_FIRM_OVERHEAD(int core_id, int io_type, int64_t overhead)
+{
+	int i;
+	int64_t remain_overhead = 0;
+	flash_memory* cur_flash = &flash[core_id];
+	flash_memory* init_flash = cur_flash;
+	plane* cur_plane;
+
+	do{
+		for(i=0; i<N_PLANES_PER_FLASH; i++){
+
+			remain_overhead = overhead;
+			cur_plane = &cur_flash->plane[i];
+
+			if(overhead == 0){
+
+				/* Reset the delay to the init value  */
+				cur_plane->reg_cmd_set_delay = REG_CMD_SET_DELAY;
+				cur_plane->reg_write_delay = REG_WRITE_DELAY;
+				cur_plane->page_program_delay = PAGE_PROGRAM_DELAY;
+				cur_plane->reg_read_delay = REG_READ_DELAY;
+				cur_plane->page_read_delay = PAGE_READ_DELAY;
+				cur_plane->block_erase_delay = BLOCK_ERASE_DELAY;
+			}
+			else{
+
+				/* Reduce Flash I/O delay as amount as overhead */
+				if(remain_overhead > REG_CMD_SET_DELAY){
+					cur_plane->reg_cmd_set_delay = 0;
+					remain_overhead -= REG_CMD_SET_DELAY;
+				}
+				else{
+					cur_plane->reg_cmd_set_delay -= remain_overhead;
+					remain_overhead = 0;
+				}
+
+				/* Reduce Flash read delay */
+				if(io_type == READ){
+
+					if(remain_overhead > PAGE_READ_DELAY){
+						cur_plane->page_read_delay = 0;
+						remain_overhead -= PAGE_READ_DELAY;
+					}
+					else{
+						cur_plane->page_read_delay -= remain_overhead;
+						remain_overhead = 0;
+					}
+
+					if(remain_overhead > REG_READ_DELAY){
+						cur_plane->reg_read_delay = 0;
+						remain_overhead -= REG_READ_DELAY;
+					}
+					else{
+						cur_plane->reg_read_delay -= remain_overhead;
+						remain_overhead = 0;
+					}
+				}
+
+				/* Reduce Flash program delay */
+				else if(io_type == WRITE){
+
+					if(remain_overhead > REG_WRITE_DELAY){
+						cur_plane->reg_write_delay = 0;
+						remain_overhead -= REG_WRITE_DELAY;
+					}
+					else{
+						cur_plane->reg_write_delay -= remain_overhead;
+						remain_overhead = 0;
+					}
+
+					if(remain_overhead > PAGE_PROGRAM_DELAY){
+						cur_plane->page_program_delay = 0;
+						remain_overhead -= PAGE_PROGRAM_DELAY;
+					}
+					else{
+						cur_plane->page_program_delay -= remain_overhead;
+						remain_overhead = 0;
+					}
+				}
+
+				/* Reduce Flash erase delay */
+				else if(io_type == ERASE){
+	
+					if(remain_overhead > BLOCK_ERASE_DELAY){
+						cur_plane->block_erase_delay = 0;
+						remain_overhead -= BLOCK_ERASE_DELAY;
+					}
+					else{
+						cur_plane->block_erase_delay -= remain_overhead;
+						remain_overhead = 0;
+					}				
+				}
+			}
+		}
+		cur_flash = cur_flash->next;
+
+	}while(cur_flash != init_flash);
+
+	return remain_overhead;
 }

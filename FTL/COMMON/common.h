@@ -25,7 +25,7 @@
 
 /* FTL */
 /* VSSIM Function */
-#define MONITOR_ON
+//#define MONITOR_ON
 //#define FTL_MAP_CACHE		/* FTL MAP Cache for PAGE MAP */
 
 /* HEADER - VSSIM CONFIGURATION */
@@ -75,6 +75,9 @@
 #define VALID		50
 #define INVALID		51
 
+/* consider QEMU/SW overhead */
+#define DEL_FIRM_OVERHEAD
+
 typedef void BlockCompletionFunc(void *opaque, int ret);
 
 ppn_t PBN_TO_PPN(pbn_t pbn, uint32_t page_index);
@@ -84,18 +87,19 @@ uint64_t GET_LINEAR_PPN(ppn_t ppn);
 int64_t get_usec(void);
 
 /* VSSIM Function Debug */
-#define MNT_DEBUG			// MONITOR Debugging
+
+/* SSD Monitor debug */
+#define MNT_DEBUG
 
 /* Workload */
 
 /* FTL Debugging */
 //#define FTL_DEBUG
 
-/* FTL Perf Debug */
-
-/* SSD Debugging */
+/* FLASH Debugging */
 
 /* FIRMWARE Debugging */
 //#define IO_CORE_DEBUG
+//#define IO_PERF_DEBUG
 
 #endif // end of 'ifndef _COMMON_H_'

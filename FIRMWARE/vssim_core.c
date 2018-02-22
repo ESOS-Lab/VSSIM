@@ -674,6 +674,7 @@ core_req_entry* CREATE_NEW_CORE_EVENT(event_queue_entry* eq_entry,
 		return NULL;
 	}
 
+	/* Initialize new per core entry */
 	new_cr_entry->seq_nb	= eq_entry->seq_nb;
 	new_cr_entry->io_type	= eq_entry->io_type;
 	new_cr_entry->sector_nb = sector_nb;
@@ -682,6 +683,7 @@ core_req_entry* CREATE_NEW_CORE_EVENT(event_queue_entry* eq_entry,
 	new_cr_entry->parent	= eq_entry;
 	new_cr_entry->flush	= flush;
 	new_cr_entry->is_trimmed = false;
+	new_cr_entry->t_start	= eq_entry->t_start;
 	new_cr_entry->next	= NULL;
 
 	return new_cr_entry;
@@ -785,6 +787,13 @@ void END_PER_CORE_WRITE_REQUEST(core_req_entry* cr_entry, int w_buf_index)
 
 	/* Release the write buffer lock */
 	pthread_mutex_unlock(&vssim_w_buf[w_buf_index].lock);
+
+#ifdef IO_PERF_DEBUG
+	FILE* fp_perf_debug = fopen("./META/io_perf_debug.dat", "a");
+	int64_t t_end = get_usec();
+	fprintf(fp_perf_debug,"%u\t%ld\n", cr_entry->length, t_end - cr_entry->t_start);
+	fclose(fp_perf_debug);
+#endif
 
 	/* Release memory for the cr_entry */
 	free(cr_entry);

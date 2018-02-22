@@ -54,6 +54,14 @@ typedef struct plane
 	ppn_t* copyback_list;
 	uint32_t n_entries;
 	uint32_t index;
+
+	/* flash i/o delay */
+	int reg_cmd_set_delay;
+	int reg_write_delay;
+	int page_program_delay; 
+	int reg_read_delay;
+	int page_read_delay;
+	int block_erase_delay;
 }plane;
 
 typedef struct flash_channel
@@ -85,13 +93,16 @@ int FLASH_BLOCK_ERASE(pbn_t pbn);
 int FLASH_PAGE_COPYBACK(ppn_t dst_ppn, ppn_t src_ppn);
 int FLASH_PAGE_COPYBACK_PHASE2(ppn_t dst_ppn, ppn_t src_ppn);
 
-void SET_CMD2_TO_REG(plane* cur_plane, uint8_t cmd, ppn_t ppn);
-
 void COPY_PAGE_CACHE_TO_DATA_REG(reg* dst_reg, reg* src_reg);
 
 int64_t BUSY_WAITING_USEC(int64_t t_end);
 int64_t GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(int channel_nb, 
-		int64_t t_now, uint8_t cmd, enum reg_state cur_state);
+		int64_t t_now, uint8_t cmd, plane* cur_plane, 
+		enum reg_state cur_state);
 
 void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages);
+
+/* Consiter QEMU, FIRM overhead */
+int64_t SET_FIRM_OVERHEAD(int core_id, int io_type, int64_t overhead);
+
 #endif

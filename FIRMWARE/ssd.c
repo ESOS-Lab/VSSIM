@@ -155,26 +155,23 @@ void END_SSD_NVME_RW(event_queue_entry* eq_entry)
 		END_SSD_NVME_READ(eq_entry);
 
 #ifdef MONITOR_ON
-		UPDATE_LOG(LOG_READ_PAGE, n_pages);
-
 		t_end = get_usec();
-		UPDATE_BW(READ, n_pages, t_end - t_start);		
+		UPDATE_LOG(LOG_READ_PAGE, n_pages);
+		UPDATE_BW(READ, n_pages, t_end - t_start);
 #endif
 	}
 	else if(io_type == WRITE){
 		END_SSD_NVME_WRITE(eq_entry);
 
 #ifdef MONITOR_ON
-		UPDATE_LOG(LOG_WRITE_PAGE, n_pages);
-
 		t_end = get_usec();
+		UPDATE_LOG(LOG_WRITE_PAGE, n_pages);
 		UPDATE_BW(WRITE, n_pages, t_end - t_start);		
 #endif
 	}
 	else if(io_type == FLUSH){
 		END_SSD_NVME_FLUSH(eq_entry);
 	}
-
 
 	return;
 }

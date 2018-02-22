@@ -7,4 +7,4 @@
 
 mkdir mnt
 chmod 0755 mnt
-sudo mount -t tmpfs -o size=20g tmpfs ./mnt
+sudo mount -t tmpfs -o size=16g tmpfs ./mnt

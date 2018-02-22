@@ -216,8 +216,8 @@ void FIRM_WRITE_EVENT(event_queue_entry* w_entry, bool flush)
 		vssim_w_buf[write_buffer_index].is_full = 1;
 
 #ifdef IO_CORE_DEBUG
-		printf("[%s] %lu-th write event: now %d-th write buffer is full\n",
-				__FUNCTION__, w_entry->seq_nb, write_buffer_index);
+		printf("%ld\t[%s] %lu-th write event: now %d-th write buffer is full\n",
+				get_usec(), __FUNCTION__, w_entry->seq_nb, write_buffer_index);
 #endif
 
 		pthread_mutex_unlock(&vssim_w_buf[write_buffer_index].lock);
@@ -599,8 +599,8 @@ void ENQUEUE_IO(event_queue_entry* new_entry)
 	int io_type = new_entry->io_type;
 
 #ifdef IO_CORE_DEBUG
-	printf("[%s] %lu-th event (io_type %d) is inserted \n",
-			__FUNCTION__, new_entry->seq_nb, io_type);
+	printf("[%s] %lu-th event (io_type %d, length %u) is inserted \n",
+			__FUNCTION__, new_entry->seq_nb, io_type, new_entry->length);
 #endif
 
 	/* Get the event queue lock */
@@ -771,14 +771,17 @@ int GET_WRITE_BUFFER_TO_FLUSH(int core_id, int* w_buf_index)
 	do{
 		pthread_mutex_lock(&vssim_w_buf[ret_index].lock);		
 
-		if(vssim_w_buf[ret_index].n_empty_sectors != N_WB_SECTORS
+		if(vs_core[core_id].write_queue[ret_index].entry_nb != 0 
 				&& (vssim_w_buf[ret_index].is_full == 1
 				|| (t_now - vssim_w_buf[ret_index].t_last_flush 
 				> FLUSH_TIMEOUT_USEC))){
 
 #ifdef IO_CORE_DEBUG
-			printf("[%s] core %d: decide to flush %d write buffer\n",
-					__FUNCTION__, core_id, ret_index);
+			printf("%ld\t[%s] core %d: decide to flush %d write buffer: %d %d %ld\n",
+					get_usec(), __FUNCTION__, core_id, ret_index,
+					vssim_w_buf[ret_index].n_empty_sectors,
+					vssim_w_buf[ret_index].is_full,
+					t_now - vssim_w_buf[ret_index].t_last_flush);
 #endif
 
 			*w_buf_index = ret_index;
@@ -880,6 +883,12 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 
 	pthread_mutex_lock(&cur_w_queue->lock);
 
+#ifdef DEL_FIRM_OVERHEAD
+	bool first_entry = true;
+	int64_t remains;
+	int64_t t_prev = 0;
+#endif
+
 	while(cur_w_queue->entry_nb != 0){
 
 		/* Dequeue the write request */
@@ -892,6 +901,21 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 			__FUNCTION__, core_id, cr_entry->seq_nb);
 #endif
 
+#ifdef DEL_FIRM_OVERHEAD
+		/* Remove firm overhead */
+		if(first_entry || cr_entry->length <= SECTORS_PER_PAGE){
+			if(first_entry){
+				remains = SET_FIRM_OVERHEAD(core_id, WRITE, get_usec()-cr_entry->t_start);
+			}
+			else{
+				remains = SET_FIRM_OVERHEAD(core_id, WRITE, remains + (cr_entry->t_start - t_prev)*N_IO_CORES);
+			}
+			t_prev = cr_entry->t_start;
+		}
+		else
+			remains = SET_FIRM_OVERHEAD(core_id, WRITE, remains);
+#endif
+
 		/* Write data to Flash memory */
 		FTL_WRITE(core_id, cr_entry->sector_nb, cr_entry->length);
 
@@ -902,6 +926,12 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 
 		/* post processing */
 		END_PER_CORE_WRITE_REQUEST(cr_entry, w_buf_index);
+
+#ifdef DEL_FIRM_OVERHEAD
+		/* Recover the init delay */
+		SET_FIRM_OVERHEAD(core_id, WRITE, 0);
+		first_entry = false;
+#endif
 	}	
 
 	/* Init the per core write queue */

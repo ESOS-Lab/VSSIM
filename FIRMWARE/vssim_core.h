@@ -17,14 +17,19 @@ typedef void CallbackFunc(void *opaque, int ret);
 
 typedef struct core_req_entry
 {
-	enum vssim_io_type io_type;
 	uint64_t seq_nb;
+
+	enum vssim_io_type io_type;
 	uint64_t sector_nb;
 	uint32_t length;
 	void* buf;
 	event_queue_entry* parent;
+
 	bool flush;
 	bool is_trimmed;
+
+	int64_t t_start; 
+
 	struct core_req_entry* next;
 }core_req_entry;
 

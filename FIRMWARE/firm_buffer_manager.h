@@ -69,7 +69,6 @@ typedef struct event_queue_entry
 	int valid;
 	uint64_t sector_nb;
 	uint32_t length;
-	uint32_t ori_length;
 	CallbackFunc *cb;
 	void* opaque;
 	void* buf;

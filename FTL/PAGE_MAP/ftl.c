@@ -304,12 +304,11 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 		old_ppn = GET_MAPPING_INFO(core_id, lpn);
 
 		if((left_skip || right_skip) && (old_ppn.addr != -1)){
-//TEMP
+// TEMP
 //			FLASH_PAGE_READ(old_ppn);
 //			WAIT_FLASH_IO(core_id, 1);
 
 			FLASH_PAGE_WRITE(new_ppn);
-
 			PARTIAL_UPDATE_PAGE_MAPPING(core_id, lpn, new_ppn, \
 					old_ppn, left_skip, right_skip);
 		}
