@@ -11,6 +11,7 @@
 #define GC_THREAD_MIN_SLEEP_TIME	20	/* milliseconds */
 #define GC_THREAD_MAX_SLEEP_TIME	200	/* milliseconds */
 
+extern int64_t t_total_gc;
 extern unsigned int gc_count;
 
 int GET_GC_LOCK(plane_info* plane_i);

@@ -25,7 +25,7 @@
 
 /* FTL */
 /* VSSIM Function */
-//#define MONITOR_ON
+#define MONITOR_ON
 //#define FTL_MAP_CACHE		/* FTL MAP Cache for PAGE MAP */
 
 /* HEADER - VSSIM CONFIGURATION */
@@ -95,6 +95,7 @@ int64_t get_usec(void);
 
 /* FTL Debugging */
 //#define FTL_DEBUG
+#define GC_DEBUG
 
 /* FLASH Debugging */
 

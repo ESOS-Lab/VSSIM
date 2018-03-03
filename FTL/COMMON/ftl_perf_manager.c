@@ -103,6 +103,10 @@ void TERM_PERF_CHECKER(void){
 	printf("Average Read Latency	%.3lf us\n", avg_read_bandwidth);
 	printf("Average Write Latency	%.3lf us\n", avg_write_bandwidth);
 
+#ifdef GC_DEBUG
+	printf("Total GC Latency	%ld us\n", t_total_gc);
+#endif
+
 	free(arr_read_latency);
 	free(arr_write_latency);
 

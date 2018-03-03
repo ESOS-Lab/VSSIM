@@ -8,6 +8,7 @@
 #include "common.h"
 
 unsigned int gc_count = 0;
+int64_t t_total_gc = 0;
 
 int GET_GC_LOCK(plane_info* cur_plane)
 {
@@ -68,6 +69,9 @@ void FGGC_CHECK(int core_id)
 #ifdef FTL_DEBUG
 	printf("[%s] %d core: start\n", __FUNCTION__, core_id);
 #endif
+#ifdef GC_DEBUG
+	int64_t t_gc_start = get_usec();
+#endif
 
 	/* Check all the flash list of the core */
 	do{
@@ -113,6 +117,9 @@ void FGGC_CHECK(int core_id)
 
 	}while(cur_flash != init_flash_i);	
 
+#ifdef GC_DEBUG
+	t_total_gc += get_usec() - t_gc_start;
+#endif
 #ifdef FTL_DEBUG
 	printf("[%s] %d core: check flash complete\n", __FUNCTION__, core_id);
 #endif
