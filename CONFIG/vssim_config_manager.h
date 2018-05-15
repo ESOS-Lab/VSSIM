@@ -71,6 +71,7 @@ extern int N_GC_HIGH_WATERMARK_BLOCKS;
 extern uint32_t N_WB_SECTORS;
 extern uint32_t N_RB_SECTORS;
 extern uint32_t N_DISCARD_BUF_SECTORS;
+extern uint32_t N_NVME_CMD_MAX_SECTORS;
 
 void INIT_SSD_CONFIG(void);
 char* GET_FILE_NAME_HDA(void);
