@@ -144,7 +144,7 @@ void INIT_VSSIM_DISCARD_BUFFER(void)
 	/* Allocate discard buffer  */
 	vssim_discard_buf.addr = (void*)calloc(N_DISCARD_BUF_SECTORS, SECTOR_SIZE);
 	if(vssim_discard_buf.addr == NULL){
-		printf("ERROR [%s] Allocation read buffer fail.\n",__FUNCTION__);
+		printf("ERROR [%s] Allocation discard buffer fail.\n",__FUNCTION__);
 		return;
 	}
 

@@ -647,6 +647,8 @@ void TERM_EMPTY_BLOCK_LIST(void)
 	}
 
 	/* Write empty block entries to file */
+	printf("[%s] %d, %d\n", __FUNCTION__, N_FLASH, N_PLANES_PER_FLASH);
+
 	for(i=0; i<N_FLASH; i++){
 		for(j=0; j<N_PLANES_PER_FLASH; j++){
 

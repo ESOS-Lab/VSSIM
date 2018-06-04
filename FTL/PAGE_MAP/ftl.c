@@ -60,6 +60,8 @@ void FTL_TERM(void)
 	pthread_mutex_lock(&term_lock);
 
 	if(g_term == 0){
+		g_term = 1;
+
 		printf("[%s] start\n", __FUNCTION__);
 
 		TERM_IO_BUFFER();
@@ -76,8 +78,6 @@ void FTL_TERM(void)
 #endif
 
 		TERM_FLASH();
-
-		g_term = 1;
 
 		printf("[%s] complete\n", __FUNCTION__);
 		return;
@@ -309,6 +309,7 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 //			WAIT_FLASH_IO(core_id, 1);
 
 			FLASH_PAGE_WRITE(new_ppn);
+
 			PARTIAL_UPDATE_PAGE_MAPPING(core_id, lpn, new_ppn, \
 					old_ppn, left_skip, right_skip);
 		}

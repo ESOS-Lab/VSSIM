@@ -363,10 +363,6 @@ void *BACKGROUND_GC_THREAD_MAIN_LOOP(void *arg)
 	block_entry* victim_block = NULL;
 
 	do{
-		/* Sleep 't_sllep_ms' milliseconds */
-		usleep(t_sleep_ms);
-
-next_gc:
 		/* Get victim block */
 		victim_block = SELECT_VICTIM_BLOCK();
 
@@ -374,18 +370,26 @@ next_gc:
 				increase sleep time and go to sleep */
 		if(victim_block == NULL){
 			INCREASE_SLEEP_TIME(&t_sleep_ms);
+
+			/* Sleep 't_sllep_ms' milliseconds */
+			usleep(t_sleep_ms);
+
 			continue;
 		}
+		else{
+#ifdef BGGC_DEBUG
+			printf("[%s] gc %d block \n", __FUNCTION__, 
+					victim_block->pbn.addr);
+#endif
 
-		/* Do garbage collection */
-		GARBAGE_COLLECTION(victim_block);
+			/* Do garbage collection */
+			BACKGROUND_GARBAGE_COLLECTION(victim_block);
 
-		/* Whenever clean a Flash block,
-				decrease the sleep time */
-		DECREASE_SLEEP_TIME(&t_sleep_ms);
+			/* Whenever clean a Flash block,
+					decrease the sleep time */
+			DECREASE_SLEEP_TIME(&t_sleep_ms);
+		}
 
-		goto next_gc;
-		
 	}while(vssim_exit != 1);
 	
 	return NULL;

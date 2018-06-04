@@ -95,7 +95,8 @@ int64_t get_usec(void);
 
 /* FTL Debugging */
 //#define FTL_DEBUG
-#define GC_DEBUG
+//#define GC_DEBUG
+#define BGGC_DEBUG
 
 /* FLASH Debugging */
 

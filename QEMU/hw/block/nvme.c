@@ -361,9 +361,36 @@ static uint16_t nvme_io_cmd(NvmeCtrl *n, NvmeCmd *cmd, NvmeRequest *req)
     NvmeNamespace *ns;
     uint32_t nsid = le32_to_cpu(cmd->nsid);
 
+//TEMP
+/*    static uint32_t w_sq1 = 0;
+    static uint32_t w_sq2 = 0;
+    static uint32_t w_sq3 = 0;
+    static uint32_t w_sq4 = 0;
+    static uint32_t w_sq5 = 0;
+    static uint32_t w_sq6 = 0;*/
+
     if (nsid == 0 || nsid > n->num_namespaces) {
         return NVME_INVALID_NSID | NVME_DNR;
     }
+
+//TEMP
+/*    if(cmd->opcode == NVME_CMD_WRITE){
+        if(req->sq->sqid == 1)
+            w_sq1++;
+        else if(req->sq->sqid == 2)
+            w_sq2++;
+        else if(req->sq->sqid == 3)
+            w_sq3++;
+        else if(req->sq->sqid == 4)
+            w_sq4++;
+        else if(req->sq->sqid == 5)
+            w_sq5++;
+        else if(req->sq->sqid == 6)
+            w_sq6++;
+
+        printf("[%s] %u\t%u\t%u\t%u\t%u\t%u\n", __FUNCTION__, 
+			w_sq1, w_sq2, w_sq3, w_sq4, w_sq5, w_sq6); 
+    }*/
 
     ns = &n->namespaces[nsid - 1];
     switch (cmd->opcode) {

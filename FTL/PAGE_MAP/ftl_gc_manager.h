@@ -20,6 +20,7 @@ void RELEASE_GC_LOCK(plane_info* plane_i);
 void FGGC_CHECK(int core_id);
 void CHECK_EMPTY_BLOCKS(int core_id, pbn_t pbn);
 
+int BACKGROUND_GARBAGE_COLLECTION(block_entry* victim_block);
 int PLANE_GARBAGE_COLLECTION(plane_info* plane_i);
 int GARBAGE_COLLECTION(block_entry* victim_entry);
 

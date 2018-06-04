@@ -162,6 +162,51 @@ void CHECK_EMPTY_BLOCKS(int core_id, pbn_t pbn)
 	}
 }
 
+int BACKGROUND_GARBAGE_COLLECTION(block_entry* victim_block)
+{
+	int ret;
+	int core_id;
+
+	/* Check the validity of the address */
+	pbn_t victim_pbn = victim_block->pbn;
+	int32_t flash = (int32_t)victim_pbn.path.flash;
+	int32_t plane = (int32_t)victim_pbn.path.plane;
+	int32_t block = (int32_t)victim_pbn.path.block;
+
+	flash_info* cur_flash = &flash_i[flash];
+	plane_info* cur_plane = &cur_flash->plane_i[plane];
+	core_id = cur_flash->core_id;
+
+	if(flash >= N_FLASH || plane >= N_PLANES_PER_FLASH
+			|| block >= N_BLOCKS_PER_PLANE){
+		printf("ERROR[%s] Wrong victim block: f %d, p %d, b %d\n", 
+				__FUNCTION__, flash, plane, block);
+		return FAIL;
+	}
+
+	UPDATE_PLANE_STATE(core_id, cur_plane, ON_GC);
+
+	/* Get mutex lock according to the GC mode */
+	ret = GET_GC_LOCK(cur_plane);
+	if(ret == FAIL)
+		return FAIL;
+	
+	/* Do garbage Collection */
+	ret = GARBAGE_COLLECTION(victim_block);
+
+	/* Release the mutex lock according to the GC mode */
+	RELEASE_GC_LOCK(cur_plane);
+
+	if(ret == FAIL){
+		UPDATE_PLANE_STATE(core_id, cur_plane, NEED_BGGC);
+		return FAIL;
+	}
+	else{
+		UPDATE_PLANE_STATE(core_id, cur_plane, IDLE);
+		return SUCCESS;
+	}
+}
+
 int PLANE_GARBAGE_COLLECTION(plane_info* cur_plane)
 {
 	int ret;
@@ -391,6 +436,10 @@ block_entry* SELECT_VICTIM_BLOCK(void)
 
 		/* If the victim block is selected, return */
 		if(victim_block != NULL){
+#ifdef BGGC_DEBUG
+			printf("[%s] %d block is selected.\n",
+				__FUNCTION__, victim_block->pbn.addr);
+#endif
 			return victim_block;
 		}
 
