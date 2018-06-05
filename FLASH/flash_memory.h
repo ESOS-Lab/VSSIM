@@ -39,6 +39,7 @@ typedef struct reg
 	enum reg_state state;
 	ppn_t ppn;
 	ppn_t copyback_ppn;
+	int core_id;
 	int64_t t_end;
 }reg;
 
@@ -52,6 +53,9 @@ typedef struct plane
 	uint8_t* cmd_list;
 	ppn_t* ppn_list;
 	ppn_t* copyback_list;
+	int* core_id_list;
+	pthread_mutex_t lock;
+
 	uint32_t n_entries;
 	uint32_t index;
 
@@ -77,21 +81,27 @@ typedef struct flash_memory
 	struct flash_memory* next;
 }flash_memory;
 
+typedef struct io_processing_info
+{
+	int n_submitted_io;
+	int n_completed_io;
+}io_proc_info;
+
 /* Initialize SSD Module */
 int INIT_FLASH(void);
 void INIT_FLASH_MEMORY_LIST(int core_id);
 int TERM_FLASH(void);
 
-int FLASH_STATE_CHECKER(int core_id);
-int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now);
-int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now);
+void FLASH_STATE_CHECKER(int core_id);
+void UPDATE_DATA_REGISTER(int core_id, plane* cur_plane, int channel_nb, int64_t t_now, int plane_nb);
+void UPDATE_PAGE_CACHE_REGISTER(int core_id, plane* cur_plane, int channel_nb, int64_t t_now);
 
 /* GET IO from FTL */
-int FLASH_PAGE_READ(ppn_t ppn);
-int FLASH_PAGE_WRITE(ppn_t ppn);
-int FLASH_BLOCK_ERASE(pbn_t pbn);
-int FLASH_PAGE_COPYBACK(ppn_t dst_ppn, ppn_t src_ppn);
-int FLASH_PAGE_COPYBACK_PHASE2(ppn_t dst_ppn, ppn_t src_ppn);
+int FLASH_PAGE_READ(int core_id, ppn_t ppn);
+int FLASH_PAGE_WRITE(int core_id, ppn_t ppn);
+int FLASH_BLOCK_ERASE(int core_id, pbn_t pbn);
+int FLASH_PAGE_COPYBACK(int core_id, ppn_t dst_ppn, ppn_t src_ppn);
+int FLASH_PAGE_COPYBACK_PHASE2(int core_id, ppn_t dst_ppn, ppn_t src_ppn);
 
 void COPY_PAGE_CACHE_TO_DATA_REG(reg* dst_reg, reg* src_reg);
 
@@ -101,6 +111,9 @@ int64_t GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(int channel_nb,
 		enum reg_state cur_state);
 
 void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages);
+
+void UPDATE_IO_PROC_INFO(int core_id);
+bool CHECK_IO_COMPLETION(int core_id);
 
 /* Consiter QEMU, FIRM overhead */
 int64_t SET_FIRM_OVERHEAD(int core_id, int io_type, int64_t overhead);

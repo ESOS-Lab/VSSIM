@@ -161,6 +161,9 @@ void INIT_VSSIM_CORE(void)
 	}
 
 	if(BACKGROUND_GC_ENABLE){
+
+		bggc_core_id = N_IO_CORES;
+
 		/* Create the Background GC thread */
 		pthread_create(&vssim_thread_id[index], NULL, 
 					BACKGROUND_GC_THREAD_MAIN_LOOP, NULL);
@@ -377,11 +380,6 @@ void *BACKGROUND_GC_THREAD_MAIN_LOOP(void *arg)
 			continue;
 		}
 		else{
-#ifdef BGGC_DEBUG
-			printf("[%s] gc %d block \n", __FUNCTION__, 
-					victim_block->pbn.addr);
-#endif
-
 			/* Do garbage collection */
 			BACKGROUND_GARBAGE_COLLECTION(victim_block);
 

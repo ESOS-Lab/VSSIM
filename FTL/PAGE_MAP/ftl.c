@@ -216,7 +216,7 @@ int _FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)
 
 			if(ppn.addr != -1){			
 				/* Read data from NAND page */
-				FLASH_PAGE_READ(ppn);
+				FLASH_PAGE_READ(core_id, ppn);
 
 				n_read_pages++;
 			}
@@ -305,16 +305,16 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 
 		if((left_skip || right_skip) && (old_ppn.addr != -1)){
 // TEMP
-//			FLASH_PAGE_READ(old_ppn);
+//			FLASH_PAGE_READ(core_id, old_ppn);
 //			WAIT_FLASH_IO(core_id, 1);
 
-			FLASH_PAGE_WRITE(new_ppn);
+			FLASH_PAGE_WRITE(core_id, new_ppn);
 
 			PARTIAL_UPDATE_PAGE_MAPPING(core_id, lpn, new_ppn, \
 					old_ppn, left_skip, right_skip);
 		}
 		else{
-			ret = FLASH_PAGE_WRITE(new_ppn);
+			ret = FLASH_PAGE_WRITE(core_id, new_ppn);
 
 			UPDATE_OLD_PAGE_MAPPING(core_id, lpn);
 			UPDATE_NEW_PAGE_MAPPING(core_id, lpn, new_ppn);

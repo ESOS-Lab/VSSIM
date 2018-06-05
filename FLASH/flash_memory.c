@@ -9,6 +9,7 @@
 
 flash_channel* channel;
 flash_memory* flash; 
+io_proc_info* io_proc_i;
 
 char flash_version[4] = "0.9";
 char flash_date[9] = "18.01.31";
@@ -74,19 +75,23 @@ int INIT_FLASH(void){
 			flash[i].plane[j].page_cache.state = REG_NOOP;
 			flash[i].plane[j].page_cache.ppn.addr = -1;
 			flash[i].plane[j].page_cache.t_end = -1;
+			flash[i].plane[j].page_cache.core_id = -1;
 
 			flash[i].plane[j].data_reg.state = REG_NOOP;
 			flash[i].plane[j].data_reg.ppn.addr = -1;
 			flash[i].plane[j].data_reg.t_end = -1;
+			flash[i].plane[j].data_reg.core_id = -1;
 
 			/* Init ppn list per flash */
 			flash[i].plane[j].cmd_list = (uint8_t*)calloc(sizeof(uint8_t), N_PPNS_PER_PLANE);
 			flash[i].plane[j].ppn_list = (ppn_t*)calloc(sizeof(ppn_t), N_PPNS_PER_PLANE);
 			flash[i].plane[j].copyback_list = (ppn_t*)calloc(sizeof(ppn_t), N_PPNS_PER_PLANE);
+			flash[i].plane[j].core_id_list = (int*)calloc(sizeof(int), N_PPNS_PER_PLANE);
 
 			if(flash[i].plane[j].cmd_list == NULL 
 					|| flash[i].plane[j].ppn_list == NULL
-					|| flash[i].plane[j].copyback_list == NULL){
+					|| flash[i].plane[j].copyback_list == NULL
+					|| flash[i].plane[j].core_id_list == NULL){
 				printf("ERROR[%s] per plane command list alloc fail!\n", __FUNCTION__);
 				return FAIL;
 			}
@@ -96,7 +101,10 @@ int INIT_FLASH(void){
 					flash[i].plane[j].cmd_list[k] = CMD_NOOP;
 					flash[i].plane[j].ppn_list[k].addr = -1;
 					flash[i].plane[j].copyback_list[k].addr = -1;
+					flash[i].plane[j].core_id_list[k] = -1;
 				}
+				pthread_mutex_init(&flash[i].plane[j].lock, NULL);
+
 				flash[i].plane[j].n_entries = 0;
 				flash[i].plane[j].index = 0;
 			}
@@ -107,6 +115,31 @@ int INIT_FLASH(void){
 	/* Init Flash memory list*/
 	for(i=0; i<N_IO_CORES; i++){
 		INIT_FLASH_MEMORY_LIST(i);
+	}
+
+	/* Init io processing info */
+	if(BACKGROUND_GC_ENABLE)
+		io_proc_i = (io_proc_info*)calloc(sizeof(io_proc_info), N_IO_CORES+1);
+	else
+		io_proc_i = (io_proc_info*)calloc(sizeof(io_proc_info), N_IO_CORES);
+
+	if(io_proc_i == NULL){
+		printf("ERROR[%s] alloc io proc info fail!\n", __FUNCTION__);
+		return FAIL;
+	}
+	else{
+		if(BACKGROUND_GC_ENABLE){
+			for(i=0; i<N_IO_CORES + 1; i++){
+				io_proc_i[i].n_submitted_io = 0;
+				io_proc_i[i].n_completed_io = 0;
+			}
+		}
+		else{
+			for(i=0; i<N_IO_CORES; i++){
+				io_proc_i[i].n_submitted_io = 0;
+				io_proc_i[i].n_completed_io = 0;
+			}
+		}
 	}
 
 	return SUCCESS;
@@ -155,16 +188,24 @@ int TERM_FLASH(void)
 	return SUCCESS;
 } 
 
-int FLASH_STATE_CHECKER(int core_id)
+void FLASH_STATE_CHECKER(int core_id)
 {
 	int i;
+	int core_index = 0;
 	int channel_nb;
 	int64_t t_now;
-	int n_completed_pages = 0;
 
-	flash_memory* cur_flash = &flash[core_id];
-	flash_memory* init_flash = cur_flash;
+	flash_memory* cur_flash;
+	flash_memory* init_flash;
 	plane* cur_plane;
+
+	if(core_id == bggc_core_id){
+		cur_flash = &flash[0];
+	}
+	else{
+		cur_flash = &flash[core_id];
+	}
+	init_flash = cur_flash;
 
 	t_now = get_usec();
 
@@ -174,65 +215,88 @@ int FLASH_STATE_CHECKER(int core_id)
 			channel_nb = cur_flash->channel_nb;
 			cur_plane = &cur_flash->plane[i];
 
-			/* Update data register state of this plane */
-			n_completed_pages += UPDATE_DATA_REGISTER(cur_plane, channel_nb, t_now);
-
-			if(PAGE_CACHE_REG_ENABLE){
-				/* Update page cache register state of this plane */
-				n_completed_pages += UPDATE_PAGE_CACHE_REGISTER(cur_plane, channel_nb, t_now);
-			}
-
 //TEMP
 /*
 			if(cur_plane->data_reg.state != REG_NOOP){
-				printf("[%s] %d core : f %d p %d (cmd %u) data state: %d (%ld), cache state: %d (%ld), index: %d / %d\n", 
-						__FUNCTION__, core_id, 
-						cur_flash->flash_nb, i, cur_plane->cmd,
-						cur_plane->data_reg.state, 
-						cur_plane->data_reg.t_end - t_now,
-						cur_plane->page_cache.state,
-						cur_plane->page_cache.t_end - t_now,
-						cur_plane->index,
-						cur_plane->n_entries);
+				printf("[%s] %d core : f %d p %d (cmd %u) data state: %d (%ld), index: %d / %d, core_id: %d (%d / %d)\n", 
+					__FUNCTION__, core_id, 
+					cur_flash->flash_nb, i, cur_plane->cmd,
+					cur_plane->data_reg.state, 
+					cur_plane->data_reg.t_end - t_now,
+					cur_plane->index,
+					cur_plane->n_entries,
+					cur_plane->data_reg.core_id,
+					io_proc_i[core_id].n_submitted_io,
+					io_proc_i[core_id].n_completed_io
+				);
 			}
 */
+
+			/* Update data register state of this plane */
+			UPDATE_DATA_REGISTER(core_id, cur_plane, channel_nb, t_now, i);
+
+			if(PAGE_CACHE_REG_ENABLE){
+				/* Update page cache register state of this plane */
+				UPDATE_PAGE_CACHE_REGISTER(core_id, cur_plane, channel_nb, t_now);
+			}
 		}
-		cur_flash = cur_flash->next;
+
+		if(core_id == bggc_core_id){
+			cur_flash = &flash[++core_index];
+
+			if(core_index == N_FLASH){
+				break;
+			}
+		}
+		else{
+			cur_flash = cur_flash->next;
+		}
 
 	}while(cur_flash != init_flash);
-
-	return n_completed_pages;
 }
 
 
-int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
+void UPDATE_DATA_REGISTER(int core_id, plane* cur_plane, int channel_nb, int64_t t_now, int plane_nb)
 {
 	reg* data_reg = &cur_plane->data_reg;
 	reg* page_cache = &cur_plane->page_cache;
 
-	uint32_t index = cur_plane->index;
-	uint32_t n_entries = cur_plane->n_entries;
+	uint32_t index;
+	uint32_t n_entries;
 
 	uint8_t next_cmd;
 	uint8_t cmd = cur_plane->cmd;
 	ppn_t next_ppn;
 	ppn_t copyback_ppn;
 
-	int completed_pages = 0;
+	int reg_core_id;
+
+	/* Get plane list lock */
+	pthread_mutex_lock(&cur_plane->lock);
+
+	if(data_reg->core_id != -1 && data_reg->core_id != core_id){
+		pthread_mutex_unlock(&cur_plane->lock);
+		return;
+	}
 
 	switch(data_reg->state){
 
 		case REG_NOOP:
+
+			index = cur_plane->index;
+			n_entries = cur_plane->n_entries;
+
 			if(!PAGE_CACHE_REG_ENABLE
 					&& index != n_entries){
 
 				next_cmd = cur_plane->cmd_list[index];
 				next_ppn = cur_plane->ppn_list[index];
 				copyback_ppn = cur_plane->copyback_list[index];
-				cur_plane->index++;
+				reg_core_id = cur_plane->core_id_list[index];
 
 				/* Init per-plane ppn list */
-				if(cur_plane->index == n_entries){
+				cur_plane->index++;
+				if(cur_plane->index == cur_plane->n_entries){
 					cur_plane->index = 0;
 					cur_plane->n_entries = 0;
 				}
@@ -241,26 +305,24 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 				data_reg->t_end = GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(channel_nb,
 							t_now, next_cmd, cur_plane, SET_CMD1);
 
+				/* Update data reg state */
+				data_reg->ppn = next_ppn;
+				data_reg->copyback_ppn = copyback_ppn;
+				data_reg->core_id = reg_core_id;
+
 				if(data_reg->t_end <= t_now){
 
 					/* Update register  */
 					data_reg->state = SET_CMD1;
-					data_reg->ppn = next_ppn;
-					data_reg->copyback_ppn = copyback_ppn;
 					data_reg->t_end = t_now + cur_plane->reg_cmd_set_delay;
-
-					/* Update plane */
-					cur_plane->cmd = next_cmd;
 				}
 				else{
 					/* Update register  */
 					data_reg->state = WAIT_CHANNEL_FOR_CMD1;
-					data_reg->ppn = next_ppn;
-					data_reg->copyback_ppn = copyback_ppn;
-
-					/* Update plane */
-					cur_plane->cmd = next_cmd;
 				}
+
+				/* Update plane */
+				cur_plane->cmd = next_cmd;
 			}
 
 			break;
@@ -319,6 +381,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					ppn_t dst_ppn = data_reg->copyback_ppn;
 					int dst_flash_nb = dst_ppn.path.flash;
 					int dst_plane_nb = dst_ppn.path.plane;
+					int reg_core_id = data_reg->core_id;
 
 					/* Update register  */
 					plane* dst_plane = &flash[dst_flash_nb].plane[dst_plane_nb];
@@ -337,7 +400,8 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 						else{
 							/* Update destination reg */
 							dst_reg->ppn = dst_ppn;
-							dst_reg->state = PAGE_PROGRAM; 
+							dst_reg->state = PAGE_PROGRAM;
+							dst_reg->core_id = reg_core_id; 
 							dst_reg->t_end = t_now + cur_plane->page_program_delay;
 
 							dst_plane->cmd = CMD_PAGE_COPYBACK;
@@ -346,6 +410,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 							data_reg->ppn.addr = -1;
 							data_reg->t_end = -1;
 							data_reg->state = REG_NOOP;
+							data_reg->core_id = -1;
 
 							cur_plane->cmd = CMD_NOOP;
 						}
@@ -369,10 +434,13 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 			/* Complete Flash page read */
 			if(data_reg->t_end <= t_now){
 
+				int reg_core_id = data_reg->core_id;
+
 				/* Initialize current register */
 				data_reg->state = REG_NOOP;
 				data_reg->ppn.addr = -1;
 				data_reg->t_end = -1;
+				data_reg->core_id = -1;
 
 				/* Initialized current plane */	
 				if(PAGE_CACHE_REG_ENABLE){
@@ -383,7 +451,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					cur_plane->cmd = CMD_NOOP;
 				}
 
-				completed_pages++;
+				UPDATE_IO_PROC_INFO(reg_core_id);
 			}
 			break;
 
@@ -391,10 +459,13 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 			/* Complete Flash page program */
 			if (data_reg->t_end <= t_now){
 
+				int reg_core_id = data_reg->core_id;
+
 				/* Initialize current register */
 				data_reg->state = REG_NOOP;
 				data_reg->ppn.addr = -1;
 				data_reg->t_end = -1;
+				data_reg->core_id = -1;
 
 				/* Initialized current plane */	
 				if(PAGE_CACHE_REG_ENABLE){
@@ -405,7 +476,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					cur_plane->cmd = CMD_NOOP;
 				}
 
-				completed_pages++;
+				UPDATE_IO_PROC_INFO(reg_core_id);
 			}
 			break;
 
@@ -433,6 +504,7 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					ppn_t dst_ppn = data_reg->copyback_ppn;
 					int dst_flash_nb = dst_ppn.path.flash;
 					int dst_plane_nb = dst_ppn.path.plane;
+					int reg_core_id = data_reg->core_id;
 
 					/* Update register  */
 					plane* dst_plane = &flash[dst_flash_nb].plane[dst_plane_nb];
@@ -444,12 +516,13 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 						data_reg->t_end = t_now + cur_plane->page_program_delay;		
 					}
 					else{
-						FLASH_PAGE_COPYBACK_PHASE2(dst_ppn, data_reg->ppn);
+						FLASH_PAGE_COPYBACK_PHASE2(reg_core_id, dst_ppn, data_reg->ppn);
 
 						/* Reset the current register */
 						data_reg->ppn.addr = -1;
 						data_reg->state = REG_NOOP;
 						data_reg->t_end = -1;
+						data_reg->core_id = -1;
 
 						cur_plane->cmd = CMD_NOOP;
 					}
@@ -463,15 +536,18 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 			/* Complete Flash block erase */
 			if(data_reg->t_end <= t_now){
 
+				int reg_core_id = data_reg->core_id;
+
 				/* Initialize current register */
 				data_reg->state = REG_NOOP;
 				data_reg->ppn.addr = -1;
 				data_reg->t_end = -1;
+				data_reg->core_id = -1;
 
 				/* Initialized current plane */	
 				cur_plane->cmd = CMD_NOOP;
 
-				completed_pages++;
+				UPDATE_IO_PROC_INFO(reg_core_id);
 			}
 			break;
 
@@ -500,33 +576,47 @@ int UPDATE_DATA_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 			break;
 	}
 
-	return completed_pages;
+	/* Release plane list lock */
+	pthread_mutex_unlock(&cur_plane->lock);
 }
 
 
-int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
+void UPDATE_PAGE_CACHE_REGISTER(int core_id, plane* cur_plane, int channel_nb, int64_t t_now)
 {
 	reg* data_reg = &cur_plane->data_reg;
 	reg* page_cache = &cur_plane->page_cache;
 
-	uint32_t index = cur_plane->index;
-	uint32_t n_entries = cur_plane->n_entries;
+	uint32_t index;
+	uint32_t n_entries;
 
 	uint8_t next_cmd;
 	uint8_t cmd = cur_plane->cmd;
 	ppn_t next_ppn;
 	ppn_t copyback_ppn;
 
-	int completed_pages = 0;
+	int reg_core_id;
+
+	/* Get plane list lock */
+	pthread_mutex_lock(&cur_plane->lock);
+
+	if(page_cache->core_id != -1 && page_cache->core_id != core_id){
+		pthread_mutex_unlock(&cur_plane->lock);
+		return;
+	}
 
 	switch(page_cache->state){
 
 		case REG_NOOP:
+
+			index = cur_plane->index;
+			n_entries = cur_plane->n_entries;
+
 			if(index != n_entries){
 
 				next_cmd = cur_plane->cmd_list[index];
 				next_ppn = cur_plane->ppn_list[index];
 				copyback_ppn = cur_plane->copyback_list[index];
+				reg_core_id = cur_plane->core_id_list[index];
 
 				if (cur_plane->cmd != CMD_NOOP && cur_plane->cmd != next_cmd){
 					break;
@@ -544,12 +634,14 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 				page_cache->t_end = GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(channel_nb,
 							t_now, next_cmd, cur_plane, SET_CMD1);
 
+				page_cache->ppn = next_ppn;
+				page_cache->copyback_ppn = copyback_ppn;
+				page_cache->core_id = reg_core_id;
+
 				if(page_cache->t_end <= t_now){
 
 					/* Update register  */
 					page_cache->state = SET_CMD1;
-					page_cache->ppn = next_ppn;
-					page_cache->copyback_ppn = copyback_ppn;
 					page_cache->t_end = t_now + cur_plane->reg_cmd_set_delay;
 
 					/* Update plane */
@@ -558,8 +650,6 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 				else{
 					/* Update register  */
 					page_cache->state = WAIT_CHANNEL_FOR_CMD1;
-					page_cache->ppn = next_ppn;
-					page_cache->copyback_ppn = copyback_ppn;
 
 					/* Update plane */
 					cur_plane->cmd = next_cmd;
@@ -617,12 +707,14 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 						page_cache->state = REG_NOOP;
 						page_cache->ppn.addr = -1;
 						page_cache->t_end = -1;
+						page_cache->core_id = -1;
 					}
 				}
 				else if(cmd == CMD_PAGE_COPYBACK){
 					ppn_t dst_ppn = page_cache->copyback_ppn;
 					int dst_flash_nb = dst_ppn.path.flash;
 					int dst_plane_nb = dst_ppn.path.plane;
+					reg_core_id = page_cache->core_id;
 
 					/* Update register  */
 					plane* dst_plane = &flash[dst_flash_nb].plane[dst_plane_nb];
@@ -646,12 +738,14 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 							dst_reg->ppn = dst_ppn;
 							dst_reg->state = PAGE_PROGRAM; 
 							dst_reg->t_end = t_now + cur_plane->page_program_delay;
+							dst_reg->core_id = reg_core_id;
 							dst_plane->cmd = CMD_PAGE_COPYBACK;
 
 							/* Init current reg */
 							page_cache->ppn.addr = -1;
 							page_cache->t_end = -1;
 							page_cache->state = REG_NOOP;
+							page_cache->core_id = -1;
 							cur_plane->cmd = CMD_NOOP;
 						}
 					}
@@ -673,15 +767,20 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 		case PAGE_PROGRAM:
 			if(page_cache->t_end <= t_now){
+
+				reg_core_id = page_cache->core_id;
+
 				if(cmd == CMD_PAGE_COPYBACK){
+
 					/* Update destination reg */
 					page_cache->ppn.addr = -1;
 					page_cache->state = REG_NOOP;
 					page_cache->t_end = -1;
-
+					page_cache->core_id = -1;				
+	
 					cur_plane->cmd = CMD_NOOP;
 
-					completed_pages++;
+					UPDATE_IO_PROC_INFO(reg_core_id);
 				}
 			 	else if(cmd == CMD_PAGE_COPYBACK_PHASE2){
 					ppn_t src_ppn = page_cache->copyback_ppn;
@@ -694,10 +793,11 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					src_reg->ppn.addr = -1;
 					src_reg->state = REG_NOOP;
 					src_reg->t_end = -1;
+					src_reg->core_id = -1;
 
 					src_plane->cmd = CMD_NOOP;
 
-					completed_pages++;
+					UPDATE_IO_PROC_INFO(reg_core_id);
 				}
 			}
 			break;
@@ -716,12 +816,14 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 						/* Set data register */
 						data_reg->state = PAGE_READ;
 						data_reg->t_end = t_now;
+						data_reg->core_id = page_cache->core_id;
 						cur_plane->cmd = CMD_PAGE_READ;
 
 						/* Initialize page cache */
 						page_cache->state = REG_NOOP;
 						page_cache->ppn.addr = -1;
-						page_cache->t_end = -1;	
+						page_cache->t_end = -1;
+						page_cache->core_id = -1;	
 					}
 				}
 				else if(cmd == CMD_PAGE_COPYBACK){
@@ -729,6 +831,7 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					ppn_t dst_ppn = page_cache->copyback_ppn;
 					int dst_flash_nb = dst_ppn.path.flash;
 					int dst_plane_nb = dst_ppn.path.plane;
+					int reg_core_id = page_cache->core_id;
 
 					/* Update register  */
 					plane* dst_plane = &flash[dst_flash_nb].plane[dst_plane_nb];
@@ -739,7 +842,8 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 						page_cache->t_end = t_now + cur_plane->page_program_delay;		
 					}
 					else{
-						FLASH_PAGE_COPYBACK_PHASE2(dst_ppn, data_reg->ppn);
+						FLASH_PAGE_COPYBACK_PHASE2(reg_core_id, 
+									dst_ppn, data_reg->ppn);
 					}
 				}
 			}
@@ -749,15 +853,18 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 			/* Complete Flash block erase */
 			if(page_cache->t_end <= t_now){
 
+				reg_core_id = page_cache->core_id;
+
 				/* Initialize current register */
 				page_cache->state = REG_NOOP;
 				page_cache->ppn.addr = -1;
 				page_cache->t_end = -1;
+				page_cache->core_id = -1;
 
 				/* Initialized current plane */	
 				cur_plane->cmd = CMD_NOOP;
 
-				completed_pages++;
+				UPDATE_IO_PROC_INFO(reg_core_id);
 			}
 			break;
 
@@ -773,18 +880,22 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 
 		case WAIT_REG:
 			if(page_cache->t_end <= t_now){
+				reg_core_id = page_cache->core_id;
+
 				if(cmd == CMD_PAGE_PROGRAM){
 					COPY_PAGE_CACHE_TO_DATA_REG(data_reg, page_cache);
 
 					/* Set data register */
 					data_reg->t_end = t_now + cur_plane->page_program_delay;
 					data_reg->state = PAGE_PROGRAM;
+					data_reg->core_id = reg_core_id;
 					cur_plane->cmd = CMD_PAGE_PROGRAM;
 
 					/* Initialize page cache */
 					page_cache->state = REG_NOOP;
 					page_cache->ppn.addr = -1;
 					page_cache->t_end = -1;
+					page_cache->core_id = -1;
 				}
 				else if(cmd == CMD_PAGE_READ){
 					COPY_PAGE_CACHE_TO_DATA_REG(data_reg, page_cache);
@@ -792,12 +903,14 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 					/* Set data register */
 					data_reg->state = PAGE_READ;
 					data_reg->t_end = t_now;
+					data_reg->core_id = reg_core_id;
 					cur_plane->cmd = CMD_PAGE_READ;
 
 					/* Initialize page cache */
 					page_cache->state = REG_NOOP;
 					page_cache->ppn.addr = -1;
 					page_cache->t_end = -1;
+					page_cache->core_id = -1;
 				}
 			}
 			break;
@@ -806,17 +919,21 @@ int UPDATE_PAGE_CACHE_REGISTER(plane* cur_plane, int channel_nb, int64_t t_now)
 			break;
 	}
 
-	return completed_pages;
+	/* Release plane list lock */
+	pthread_mutex_unlock(&cur_plane->lock);
 }
 
 
-int FLASH_PAGE_WRITE(ppn_t ppn)
+int FLASH_PAGE_WRITE(int core_id, ppn_t ppn)
 {
 	uint32_t index;
 	int flash_nb = (int)ppn.path.flash;
 	int plane_nb = (int)ppn.path.plane;
 
 	plane* cur_plane = &flash[flash_nb].plane[plane_nb];
+
+	/* Get plane list lock */
+	pthread_mutex_lock(&cur_plane->lock);
 
 	/* Get ppn list index */
 	index = cur_plane->n_entries;
@@ -829,19 +946,28 @@ int FLASH_PAGE_WRITE(ppn_t ppn)
 	/* Insert ppn and cmd to the flash ppn list */
 	cur_plane->ppn_list[index] = ppn;
 	cur_plane->cmd_list[index] = CMD_PAGE_PROGRAM;
-
+	cur_plane->core_id_list[index] = core_id;
 	cur_plane->n_entries++;
+	
+	/* Release list lock */
+	pthread_mutex_unlock(&cur_plane->lock);
+
+	/* Update io proc info */
+	io_proc_i[core_id].n_submitted_io++;
 
 	return SUCCESS;
 }
 
-int FLASH_PAGE_READ(ppn_t ppn)
+int FLASH_PAGE_READ(int core_id, ppn_t ppn)
 {
 	uint32_t index;
 	int flash_nb = (int)ppn.path.flash;
 	int plane_nb = (int)ppn.path.plane;
 
 	plane* cur_plane = &flash[flash_nb].plane[plane_nb];
+
+	/* Get plane list lock */
+	pthread_mutex_lock(&cur_plane->lock);
 
 	/* Get ppn list index */
 	index = cur_plane->n_entries;
@@ -854,13 +980,19 @@ int FLASH_PAGE_READ(ppn_t ppn)
 	/* Insert ppn and cmd to the flash ppn list */
 	cur_plane->ppn_list[index] = ppn;
 	cur_plane->cmd_list[index] = CMD_PAGE_READ;
-
+	cur_plane->core_id_list[index] = core_id;
 	cur_plane->n_entries++;
+
+	/* Release plane list lock */
+	pthread_mutex_unlock(&cur_plane->lock);
+
+	/* Update io proc info */
+	io_proc_i[core_id].n_submitted_io++;
 
 	return SUCCESS;
 }
 
-int FLASH_PAGE_COPYBACK(ppn_t dst_ppn, ppn_t src_ppn)
+int FLASH_PAGE_COPYBACK(int core_id, ppn_t dst_ppn, ppn_t src_ppn)
 {
 	uint32_t index;
 	int flash_nb = (int)src_ppn.path.flash;
@@ -881,13 +1013,14 @@ int FLASH_PAGE_COPYBACK(ppn_t dst_ppn, ppn_t src_ppn)
 	cur_plane->ppn_list[index] = src_ppn;
 	cur_plane->copyback_list[index] = dst_ppn;
 	cur_plane->cmd_list[index] = CMD_PAGE_COPYBACK;
+	cur_plane->core_id_list[index] = core_id;
 
 	cur_plane->n_entries++;
 	
 	return SUCCESS;
 }
 
-int FLASH_PAGE_COPYBACK_PHASE2(ppn_t dst_ppn, ppn_t src_ppn)
+int FLASH_PAGE_COPYBACK_PHASE2(int core_id, ppn_t dst_ppn, ppn_t src_ppn)
 {
 	uint32_t index;
 	int flash_nb = (int)dst_ppn.path.flash;
@@ -896,6 +1029,8 @@ int FLASH_PAGE_COPYBACK_PHASE2(ppn_t dst_ppn, ppn_t src_ppn)
 	plane* cur_plane = &flash[flash_nb].plane[plane_nb];
 
 	/* Get ppn list index */
+	pthread_mutex_lock(&cur_plane->lock);
+
 	index = cur_plane->n_entries;
 	if(index >= N_PPNS_PER_PLANE){
 		printf("ERROR[%s] Exceed ppn list index: %u\n",
@@ -907,13 +1042,15 @@ int FLASH_PAGE_COPYBACK_PHASE2(ppn_t dst_ppn, ppn_t src_ppn)
 	cur_plane->ppn_list[index] = dst_ppn;
 	cur_plane->copyback_list[index] = src_ppn;
 	cur_plane->cmd_list[index] = CMD_PAGE_COPYBACK_PHASE2;
-
+	cur_plane->core_id_list[index] = core_id;
 	cur_plane->n_entries++;
 	
+	pthread_mutex_unlock(&cur_plane->lock);
+
 	return SUCCESS;
 }
 
-int FLASH_BLOCK_ERASE(pbn_t pbn)
+int FLASH_BLOCK_ERASE(int core_id, pbn_t pbn)
 {
 	uint32_t index;
 	int flash_nb = (int)pbn.path.flash;
@@ -922,19 +1059,26 @@ int FLASH_BLOCK_ERASE(pbn_t pbn)
 
 	plane* cur_plane = &flash[flash_nb].plane[plane_nb];
 
+	/* Insert ppn and cmd to the flash ppn list */
+	pthread_mutex_lock(&cur_plane->lock);
+
 	/* Get ppn list index */
 	index = cur_plane->n_entries;
-	if(index != 0){
+	if(index >= N_PPNS_PER_PLANE){
 		printf("ERROR[%s] Exceed ppn list index: %u\n",
 				__FUNCTION__, index);
 		return FAIL;
 	}
 
-	/* Insert ppn and cmd to the flash ppn list */
 	cur_plane->ppn_list[index] = ppn;
 	cur_plane->cmd_list[index] = CMD_BLOCK_ERASE;
-
+	cur_plane->core_id_list[index] = core_id;
 	cur_plane->n_entries++;
+
+	pthread_mutex_unlock(&cur_plane->lock);
+
+	/* Update io proc info */
+	io_proc_i[core_id].n_submitted_io++;
 
 	return SUCCESS;
 }
@@ -1009,7 +1153,7 @@ int64_t GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(int channel_nb, int64_t t_now,
 
 void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages)
 {
-	int n_completed_pages = 0;
+	bool ret = false;
 
 #ifdef IO_PERF_DEBUG
 	FILE* fp_io = fopen("./META/io.dat", "a");
@@ -1017,9 +1161,10 @@ void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages)
 #endif
 
 	/* Wait all inflight Flash IOs */
-	while(n_completed_pages != n_io_pages){
+	while(ret == false){
 
-		n_completed_pages += FLASH_STATE_CHECKER(core_id);
+		FLASH_STATE_CHECKER(core_id);
+		ret = CHECK_IO_COMPLETION(core_id);
 	}
 
 #ifdef IO_PERF_DEBUG
@@ -1031,6 +1176,35 @@ void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages)
 #endif
 
 	return;
+}
+
+void UPDATE_IO_PROC_INFO(int core_id)
+{
+	if(core_id == -1){
+		printf("[%s] Error: core_id %d\n", __FUNCTION__, core_id);
+		return;
+	}
+
+	io_proc_i[core_id].n_completed_io++;
+}
+
+bool CHECK_IO_COMPLETION(int core_id)
+{
+	if(core_id == -1){
+		printf("[%s] Error: core_id %d\n", __FUNCTION__, core_id);
+		return false ;
+	}
+
+	if(io_proc_i[core_id].n_submitted_io
+			== io_proc_i[core_id].n_completed_io){
+
+		io_proc_i[core_id].n_submitted_io = 0;
+		io_proc_i[core_id].n_completed_io = 0;
+
+		return true;
+	}
+
+	return false;
 }
 
 int64_t SET_FIRM_OVERHEAD(int core_id, int io_type, int64_t overhead)

@@ -13,6 +13,7 @@
 
 extern int64_t t_total_gc;
 extern unsigned int gc_count;
+extern int bggc_core_id;
 
 int GET_GC_LOCK(plane_info* plane_i);
 void RELEASE_GC_LOCK(plane_info* plane_i);
@@ -21,8 +22,8 @@ void FGGC_CHECK(int core_id);
 void CHECK_EMPTY_BLOCKS(int core_id, pbn_t pbn);
 
 int BACKGROUND_GARBAGE_COLLECTION(block_entry* victim_block);
-int PLANE_GARBAGE_COLLECTION(plane_info* plane_i);
-int GARBAGE_COLLECTION(block_entry* victim_entry);
+int PLANE_GARBAGE_COLLECTION(int core_id, plane_info* plane_i);
+int GARBAGE_COLLECTION(int core_id, block_entry* victim_entry);
 
 block_entry* SELECT_VICTIM_BLOCK(void);
 block_entry* SELECT_VICTIM_BLOCK_FROM_PLANE(plane_info* plane_i);

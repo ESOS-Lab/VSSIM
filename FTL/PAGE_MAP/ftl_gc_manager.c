@@ -9,6 +9,7 @@
 
 unsigned int gc_count = 0;
 int64_t t_total_gc = 0;
+int bggc_core_id;
 
 int GET_GC_LOCK(plane_info* cur_plane)
 {
@@ -98,7 +99,7 @@ void FGGC_CHECK(int core_id)
 				UPDATE_PLANE_STATE(core_id, cur_plane, ON_GC);
 
 				/* Perform foreground GC */
-				ret = PLANE_GARBAGE_COLLECTION(cur_plane);
+				ret = PLANE_GARBAGE_COLLECTION(core_id, cur_plane);
 
 				/* Update the state of the plane */
 				if(ret == SUCCESS)
@@ -192,22 +193,25 @@ int BACKGROUND_GARBAGE_COLLECTION(block_entry* victim_block)
 		return FAIL;
 	
 	/* Do garbage Collection */
-	ret = GARBAGE_COLLECTION(victim_block);
+	ret = GARBAGE_COLLECTION(bggc_core_id, victim_block);
 
 	/* Release the mutex lock according to the GC mode */
 	RELEASE_GC_LOCK(cur_plane);
 
+#ifdef BGGC_DEBUG
+	printf("[%s] End, ret:%d\n", __FUNCTION__, ret);
+#endif
 	if(ret == FAIL){
 		UPDATE_PLANE_STATE(core_id, cur_plane, NEED_BGGC);
 		return FAIL;
 	}
 	else{
-		UPDATE_PLANE_STATE(core_id, cur_plane, IDLE);
+		CHECK_EMPTY_BLOCKS(core_id, victim_pbn);
 		return SUCCESS;
 	}
 }
 
-int PLANE_GARBAGE_COLLECTION(plane_info* cur_plane)
+int PLANE_GARBAGE_COLLECTION(int core_id, plane_info* cur_plane)
 {
 	int ret;
 	block_entry* victim_block;
@@ -236,7 +240,7 @@ int PLANE_GARBAGE_COLLECTION(plane_info* cur_plane)
 	}
 
 	/* Do garbage Collection */
-	ret = GARBAGE_COLLECTION(victim_block);
+	ret = GARBAGE_COLLECTION(core_id, victim_block);
 
 	/* Release the mutex lock according to the GC mode */
 	RELEASE_GC_LOCK(cur_plane);
@@ -247,13 +251,12 @@ int PLANE_GARBAGE_COLLECTION(plane_info* cur_plane)
 		return SUCCESS;
 }
 
-int GARBAGE_COLLECTION(block_entry* victim_entry)
+int GARBAGE_COLLECTION(int core_id, block_entry* victim_entry)
 {
 	int i, ret;
-	int flash_nb = -1;
-	int core_id = -1;
 	int n_copies = 0;
 	int n_valid_pages = 0;
+	int core_id_block;
 
 	int64_t lpn;
 	pbn_t victim_pbn = victim_entry->pbn;
@@ -262,8 +265,8 @@ int GARBAGE_COLLECTION(block_entry* victim_entry)
 	bitmap_t valid_array;
 	block_state_entry* bs_entry;
 
-	flash_nb = (int)victim_pbn.path.flash;
-	core_id = flash_i[flash_nb].core_id;
+	/* Get the core id which manages the victim block */
+	core_id_block = flash_i[victim_pbn.path.flash].core_id;
 
 	/* Get block state entry and the valid array of the victim block */
 	bs_entry = GET_BLOCK_STATE_ENTRY(victim_pbn);
@@ -291,15 +294,15 @@ int GARBAGE_COLLECTION(block_entry* victim_entry)
 
 			if(gc_mode == CORE_GC){
 				/* read the valid page from the victim block */
-				FLASH_PAGE_READ(old_ppn);
+				FLASH_PAGE_READ(core_id, old_ppn);
 				WAIT_FLASH_IO(core_id, READ, 1);
 
 				/* Write the valid page to new free page */
-				FLASH_PAGE_WRITE(new_ppn);
+				FLASH_PAGE_WRITE(core_id, new_ppn);
 				WAIT_FLASH_IO(core_id, WRITE, 1);
 			}
 			else{
-				FLASH_PAGE_COPYBACK(new_ppn, old_ppn);
+				FLASH_PAGE_COPYBACK(core_id, new_ppn, old_ppn);
 	
 				/* Wait until the page copyback is completed */
 				WAIT_FLASH_IO(core_id, WRITE, 1);
@@ -323,17 +326,17 @@ int GARBAGE_COLLECTION(block_entry* victim_entry)
 	}
 
 	/* Erase the victim Flash block */
-	FLASH_BLOCK_ERASE(victim_pbn);
+	FLASH_BLOCK_ERASE(core_id, victim_pbn);
 
 	/* Wait until block erase completed */
 	WAIT_FLASH_IO(core_id, BLOCK_ERASE, 1); 
 
 	/* Move the victim block from victim list to empty list */
-	POP_VICTIM_BLOCK(core_id, victim_entry);
+	POP_VICTIM_BLOCK(core_id_block, victim_entry);
 
 	/* Set the victim block as EMPTY_BLOCK */
 	UPDATE_BLOCK_STATE(victim_pbn, EMPTY_BLOCK);
-	INSERT_EMPTY_BLOCK(core_id, victim_entry);
+	INSERT_EMPTY_BLOCK(core_id_block, victim_entry);
 
 	gc_count++;
 
@@ -437,8 +440,10 @@ block_entry* SELECT_VICTIM_BLOCK(void)
 		/* If the victim block is selected, return */
 		if(victim_block != NULL){
 #ifdef BGGC_DEBUG
-			printf("[%s] %d block is selected.\n",
-				__FUNCTION__, victim_block->pbn.addr);
+			printf("[%s] f:%d p:%d b:%d is selected.\n",
+				__FUNCTION__, victim_block->pbn.path.flash,
+						victim_block->pbn.path.plane,
+						victim_block->pbn.path.block);
 #endif
 			return victim_block;
 		}
