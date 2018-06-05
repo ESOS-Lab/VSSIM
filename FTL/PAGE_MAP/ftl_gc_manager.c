@@ -393,7 +393,7 @@ block_entry* SELECT_VICTIM_BLOCK_FROM_PLANE(plane_info* cur_plane)
 }
 
 
-block_entry* SELECT_VICTIM_BLOCK(void)
+block_entry* SELECT_VICTIM_BLOCK_FOR_BGGC(void)
 {
 	static int flash_index = 0;
 	static int plane_index = 0;

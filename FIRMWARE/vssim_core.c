@@ -367,7 +367,7 @@ void *BACKGROUND_GC_THREAD_MAIN_LOOP(void *arg)
 
 	do{
 		/* Get victim block */
-		victim_block = SELECT_VICTIM_BLOCK();
+		victim_block = SELECT_VICTIM_BLOCK_FOR_BGGC();
 
 		/* If there is no available victim block,
 				increase sleep time and go to sleep */

@@ -25,7 +25,7 @@ int BACKGROUND_GARBAGE_COLLECTION(block_entry* victim_block);
 int PLANE_GARBAGE_COLLECTION(int core_id, plane_info* plane_i);
 int GARBAGE_COLLECTION(int core_id, block_entry* victim_entry);
 
-block_entry* SELECT_VICTIM_BLOCK(void);
+block_entry* SELECT_VICTIM_BLOCK_FOR_BGGC(void);
 block_entry* SELECT_VICTIM_BLOCK_FROM_PLANE(plane_info* plane_i);
 
 void INCREASE_SLEEP_TIME(long* t_sleep_ms);
