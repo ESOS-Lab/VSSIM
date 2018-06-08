@@ -35,7 +35,7 @@ int64_t get_usec_nvme(void)
 
 void SSD_INIT(void)
 {
-	vssim_exit = false;
+//	vssim_exit = false;
 	FTL_INIT();
 }
 
@@ -43,7 +43,7 @@ void SSD_INIT(void)
 void SSD_TERM(void)
 {	
 	FTL_TERM();
-	vssim_exit = true;
+//	vssim_exit = true;
 }
 
 

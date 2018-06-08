@@ -8,6 +8,7 @@
 #include "common.h"
 
 ppn_t** mapping_table;
+pthread_mutex_t* get_free_page_lock;
 
 int INIT_MAPPING_TABLE(int init_info)
 {
@@ -29,6 +30,19 @@ int INIT_MAPPING_TABLE(int init_info)
 			return -1;
 		}
 	}	
+
+	/* Init get free page lock */
+	get_free_page_lock = (pthread_mutex_t*)calloc(sizeof(pthread_mutex_t),
+					N_IO_CORES);
+        if(get_free_page_lock == NULL){
+                printf("ERROR[%s] Create per core free page lock fail!\n", __FUNCTION__);
+                return -1;
+        }
+	else{
+		for(i=0; i<N_IO_CORES; i++){
+			pthread_mutex_init(&get_free_page_lock[i], NULL);
+		}
+	}
 
 	/* Initialization Mapping Table */
 	
@@ -104,14 +118,20 @@ ppn_t GET_MAPPING_INFO(int core_id, int64_t lpn)
 	return ppn;
 }
 
-int GET_NEW_PAGE(int core_id, pbn_t index, int mode, ppn_t* ppn)
+int GET_NEW_PAGE(int core_id, pbn_t index, int mode, ppn_t* ppn, int for_gc)
 {
 	block_entry* empty_block;
+
+	/* Get free page lock */
+	pthread_mutex_lock(&get_free_page_lock[core_id]);
 
 	/* Get empty block from the flash list of the core */
 	empty_block = GET_EMPTY_BLOCK(core_id, index, mode);
 	if(empty_block == NULL){
 		printf("ERROR[%s] Get empty block fail\n", __FUNCTION__);
+
+		/* Release get free page lock */
+		pthread_mutex_unlock(&get_free_page_lock[core_id]);
 		return FAIL;
 	}
 
@@ -127,18 +147,23 @@ int GET_NEW_PAGE(int core_id, pbn_t index, int mode, ppn_t* ppn)
 		INSERT_VICTIM_BLOCK(core_id, empty_block);
 
 		/* Check whether the plane need to GC */
-		CHECK_EMPTY_BLOCKS(core_id, empty_block->pbn);
+		if(for_gc == 0)
+			CHECK_EMPTY_BLOCKS(core_id, empty_block->pbn);
 	}
+
+	/* Release get free page lock */
+	pthread_mutex_unlock(&get_free_page_lock[core_id]);
 
 	return SUCCESS;
 }
 
-int UPDATE_OLD_PAGE_MAPPING(int core_id, int64_t lpn)
+int UPDATE_OLD_PAGE_MAPPING(int core_id, int owner_core_id, int64_t lpn)
 {
 	ppn_t old_ppn;
 	pbn_t old_pbn;
+	block_state_entry* bs_entry;
 
-	old_ppn = GET_MAPPING_INFO(core_id, lpn);
+	old_ppn = GET_MAPPING_INFO(owner_core_id, lpn);
 
 	if(old_ppn.addr == -1){
 		return SUCCESS;
@@ -146,8 +171,19 @@ int UPDATE_OLD_PAGE_MAPPING(int core_id, int64_t lpn)
 	else{
 		old_pbn = PPN_TO_PBN(old_ppn);
 
-		UPDATE_BLOCK_STATE_ENTRY(old_pbn, old_ppn.path.page, INVALID);
-		UPDATE_INVERSE_MAPPING(old_ppn, -1);
+		bs_entry = GET_BLOCK_STATE_ENTRY(old_pbn);
+		if(bs_entry->core_id == -1 || bs_entry->core_id == core_id){
+
+			UPDATE_BLOCK_STATE_ENTRY(core_id, old_pbn, old_ppn.path.page, INVALID);
+			UPDATE_INVERSE_MAPPING(old_ppn, -1);
+		}
+
+#ifdef FTL_DEBUG
+		printf("[%s] %d-core, old pbn f %d p %d b %d p %d (n_valid: %d, C: %d)\n",
+			__FUNCTION__, core_id, old_pbn.path.flash, old_pbn.path.plane,
+			old_pbn.path.block, old_ppn.path.page, bs_entry->n_valid_pages, 
+			COUNT_BLOCK_STATE_ENTRY(old_pbn));
+#endif
 	}
 
 	return SUCCESS;
@@ -163,14 +199,25 @@ int UPDATE_NEW_PAGE_MAPPING(int core_id, int64_t lpn, ppn_t ppn)
 	/* Update Inverse Page Mapping Table */
 	pbn = PPN_TO_PBN(ppn);
 
-	UPDATE_BLOCK_STATE_ENTRY(pbn, ppn.path.page, VALID);
-	UPDATE_BLOCK_STATE(pbn, DATA_BLOCK);
+#ifdef FTL_DEBUG
+	block_state_entry* bs_entry = GET_BLOCK_STATE_ENTRY(pbn);
+#endif
+
+	UPDATE_BLOCK_STATE_ENTRY(core_id, pbn, ppn.path.page, VALID);
+	UPDATE_BLOCK_STATE(core_id, pbn, DATA_BLOCK);
 	UPDATE_INVERSE_MAPPING(ppn, lpn);
+
+#ifdef FTL_DEBUG
+	printf("[%s] 2. %d-core, new pbn f %d p %d b %d p %d (n_valid: %d, C: %d)\n",
+		__FUNCTION__, core_id, pbn.path.flash, pbn.path.plane,
+		pbn.path.block, ppn.path.page, bs_entry->n_valid_pages, 
+		COUNT_BLOCK_STATE_ENTRY(pbn));
+#endif
 
 	return SUCCESS;
 }
 
-int PARTIAL_UPDATE_PAGE_MAPPING(int core_id, int64_t lpn, ppn_t new_ppn,
+int PARTIAL_UPDATE_PAGE_MAPPING(int core_id, int owner_core_id, int64_t lpn, ppn_t new_ppn,
 		ppn_t old_ppn, uint32_t left_skip, uint32_t right_skip)
 {
 	uint32_t offset = left_skip / SECTORS_PER_4K_PAGE;
@@ -185,6 +232,11 @@ int PARTIAL_UPDATE_PAGE_MAPPING(int core_id, int64_t lpn, ppn_t new_ppn,
 	uint32_t dst_index = new_ppn.path.page;  
 	uint32_t src_index = old_ppn.path.page;
 
+	/* Get lock of the dst block state entry */
+	pthread_mutex_lock(&dst_bs_entry->lock);
+
+	dst_bs_entry->core_id = core_id;
+
 	/* Copy bitmap info from src page to dst page */
 	COPY_BITMAP_MASK(dst_bs_entry->valid_array, dst_index,
 			src_bs_entry->valid_array, src_index);
@@ -194,21 +246,34 @@ int PARTIAL_UPDATE_PAGE_MAPPING(int core_id, int64_t lpn, ppn_t new_ppn,
 		while(length > 0){
 			SET_BITMAP(dst_bs_entry->valid_array, dst_index * N_4K_PAGES + offset);
 
-			length -= (SECTORS_PER_4K_PAGE - left_skip);
+			length -=  (SECTORS_PER_4K_PAGE - left_skip % SECTORS_PER_4K_PAGE);
 			left_skip = 0;
 			offset++;
 		}
 	}
 
 	/* Invalidate old ppn */
-	UPDATE_OLD_PAGE_MAPPING(core_id, lpn);
+	UPDATE_OLD_PAGE_MAPPING(core_id, owner_core_id, lpn);
 
 	/* Update Mapping Table */
-	mapping_table[core_id][lpn] = new_ppn;
+	mapping_table[owner_core_id][lpn] = new_ppn;
 	UPDATE_INVERSE_MAPPING(new_ppn, lpn);
 
 	/* Update the number of valid pages */
 	dst_bs_entry->n_valid_pages++;
+
+#ifdef FTL_DEBUG
+	printf("[%s] 2. %d-core: %d %d %d %d <- %d %d %d dst n_valid: %d (%d), src_n_valid: %d (%d)\n",
+		__FUNCTION__, core_id, dst_pbn.path.flash, dst_pbn.path.plane, 
+		dst_pbn.path.block, dst_index,
+		src_pbn.path.flash, src_pbn.path.plane, src_pbn.path.block,
+		dst_bs_entry->n_valid_pages, COUNT_BLOCK_STATE_ENTRY(dst_pbn), 
+		src_bs_entry->n_valid_pages, COUNT_BLOCK_STATE_ENTRY(src_pbn));
+#endif
+
+	/* Update dst block state entry and release the lock */
+	dst_bs_entry->core_id = -1;
+	pthread_mutex_unlock(&dst_bs_entry->lock);
 
 	return SUCCESS;
 }

@@ -11,6 +11,16 @@ unsigned int gc_count = 0;
 int64_t t_total_gc = 0;
 int bggc_core_id;
 
+#ifdef BGGC_DEBUG
+int64_t bggc_n_victim_blocks = 0;
+int64_t bggc_n_copy_pages = 0;
+int64_t bggc_n_free_pages = 0;	
+
+int64_t fggc_n_victim_blocks = 0;
+int64_t fggc_n_copy_pages = 0;
+int64_t fggc_n_free_pages = 0;	
+#endif
+
 int GET_GC_LOCK(plane_info* cur_plane)
 {
 	int ret = -1;
@@ -88,7 +98,7 @@ void FGGC_CHECK(int core_id)
 			plane_state = GET_PLANE_STATE(cur_plane);
 
 			/* If the plane needs to perform foreground GC, */
-			if(plane_state == NEED_FGGC){
+			if(plane_state == NEED_FGGC && plane_state != ON_GC){
 
 #ifdef FTL_DEBUG
 				printf("[%s] %d core: f %d, p %d need GC\n",
@@ -104,6 +114,8 @@ void FGGC_CHECK(int core_id)
 				/* Update the state of the plane */
 				if(ret == SUCCESS)
 					UPDATE_PLANE_STATE(core_id, cur_plane, IDLE);
+				else
+					UPDATE_PLANE_STATE(core_id, cur_plane, NEED_FGGC);
 			}
 		}
 
@@ -189,8 +201,10 @@ int BACKGROUND_GARBAGE_COLLECTION(block_entry* victim_block)
 
 	/* Get mutex lock according to the GC mode */
 	ret = GET_GC_LOCK(cur_plane);
-	if(ret == FAIL)
+	if(ret == FAIL){
+		UPDATE_PLANE_STATE(core_id, cur_plane, NEED_BGGC);
 		return FAIL;
+	}
 	
 	/* Do garbage Collection */
 	ret = GARBAGE_COLLECTION(bggc_core_id, victim_block);
@@ -198,9 +212,6 @@ int BACKGROUND_GARBAGE_COLLECTION(block_entry* victim_block)
 	/* Release the mutex lock according to the GC mode */
 	RELEASE_GC_LOCK(cur_plane);
 
-#ifdef BGGC_DEBUG
-	printf("[%s] End, ret:%d\n", __FUNCTION__, ret);
-#endif
 	if(ret == FAIL){
 		UPDATE_PLANE_STATE(core_id, cur_plane, NEED_BGGC);
 		return FAIL;
@@ -256,7 +267,7 @@ int GARBAGE_COLLECTION(int core_id, block_entry* victim_entry)
 	int i, ret;
 	int n_copies = 0;
 	int n_valid_pages = 0;
-	int core_id_block;
+	int owner_core_id;
 
 	int64_t lpn;
 	pbn_t victim_pbn = victim_entry->pbn;
@@ -265,27 +276,48 @@ int GARBAGE_COLLECTION(int core_id, block_entry* victim_entry)
 	bitmap_t valid_array;
 	block_state_entry* bs_entry;
 
+#ifdef GC_DEBUG
+	printf("[%s] %d-core start gc\n", __FUNCTION__, core_id);
+#endif
+
 	/* Get the core id which manages the victim block */
-	core_id_block = flash_i[victim_pbn.path.flash].core_id;
+	owner_core_id = flash_i[victim_pbn.path.flash].core_id;
 
 	/* Get block state entry and the valid array of the victim block */
 	bs_entry = GET_BLOCK_STATE_ENTRY(victim_pbn);
+
+	/* Get lock of the block entry */
+	pthread_mutex_lock(&bs_entry->lock);
+	
+	/* Update bs_entry core id */
+	if(bs_entry->core_id != -1){
+		printf("ERROR [%s] bs_entry has core id %d\n",
+				__FUNCTION__, bs_entry->core_id);
+	}
+	bs_entry->core_id = core_id;
+
 	valid_array = bs_entry->valid_array;
 	n_valid_pages = bs_entry->n_valid_pages;
+
+#ifdef GC_DEBUG
+	printf("\t %d-core n_valid_pages: %d\n", core_id, n_valid_pages);
+#endif
 
 	/* Move valid pages from the victim block to new empty page */
 	for(i=0; i<N_PAGES_PER_BLOCK; i++){
 		if(TEST_BITMAP_MASK(valid_array, i)){
 
 			if(gc_mode == FLASH_GC)
-				ret = GET_NEW_PAGE(core_id, victim_pbn, MODE_INFLASH, &new_ppn);
+				ret = GET_NEW_PAGE(owner_core_id, victim_pbn, MODE_INFLASH, &new_ppn, 1);
 			else if(gc_mode == PLANE_GC)
-				ret = GET_NEW_PAGE(core_id, victim_pbn, MODE_INPLANE, &new_ppn);
+				ret = GET_NEW_PAGE(owner_core_id, victim_pbn, MODE_INPLANE, &new_ppn, 1);
 			else if(gc_mode == CORE_GC)
-				ret = GET_NEW_PAGE(core_id, victim_pbn, MODE_OVERALL, &new_ppn);
+				ret = GET_NEW_PAGE(owner_core_id, victim_pbn, MODE_OVERALL, &new_ppn, 1);
 
 			if(ret == FAIL){
 				printf("ERROR[%s] Get new page fail\n", __FUNCTION__);
+				pthread_mutex_unlock(&bs_entry->lock);
+
 				return FAIL;
 			}
 
@@ -312,16 +344,25 @@ int GARBAGE_COLLECTION(int core_id, block_entry* victim_entry)
 			lpn = GET_INVERSE_MAPPING_INFO(old_ppn);
 
 			/* Update mapping table */
-			PARTIAL_UPDATE_PAGE_MAPPING(core_id, lpn, new_ppn, \
+			PARTIAL_UPDATE_PAGE_MAPPING(core_id, owner_core_id, lpn, new_ppn, \
 					old_ppn, 0, 0);
+
+#ifdef GC_DEBUG
+			printf("[%s] %d-core move %d pages from f %d p %d b %d (plane state: %d)\n",
+					__FUNCTION__, core_id, n_copies,
+					old_ppn.path.flash, old_ppn.path.plane,
+					old_ppn.path.block,
+					flash_i[old_ppn.path.flash].plane_i[old_ppn.path.plane].p_state				);
+#endif
 
 			n_copies++;
 		}
 	}
 
 	if(n_copies != n_valid_pages){
-		printf("ERROR[%s] The number of valid page is not correct: %d != %d\n",
-			 __FUNCTION__, n_copies, n_valid_pages);
+		printf("ERROR[%s] %d-core: The number of valid page is not correct: %d != %d\n",
+			 __FUNCTION__, core_id, n_copies, n_valid_pages);
+
 		return FAIL;
 	}
 
@@ -332,13 +373,36 @@ int GARBAGE_COLLECTION(int core_id, block_entry* victim_entry)
 	WAIT_FLASH_IO(core_id, BLOCK_ERASE, 1); 
 
 	/* Move the victim block from victim list to empty list */
-	POP_VICTIM_BLOCK(core_id_block, victim_entry);
+	POP_VICTIM_BLOCK(owner_core_id, victim_entry);
 
 	/* Set the victim block as EMPTY_BLOCK */
-	UPDATE_BLOCK_STATE(victim_pbn, EMPTY_BLOCK);
-	INSERT_EMPTY_BLOCK(core_id_block, victim_entry);
+	UPDATE_BLOCK_STATE(core_id, victim_pbn, EMPTY_BLOCK);
+	INSERT_EMPTY_BLOCK(owner_core_id, victim_entry);
+
+	/* Initialize bs_entry core id */
+	bs_entry->core_id = -1;
+
+	/* Release lock of the block entry */
+	pthread_mutex_unlock(&bs_entry->lock);
 
 	gc_count++;
+
+#ifdef GC_DEBUG
+	printf("[%s] %d-core end gc\n", __FUNCTION__, core_id);
+#endif
+
+#ifdef BGGC_DEBUG
+	if(core_id == bggc_core_id){
+		bggc_n_victim_blocks++;
+		bggc_n_copy_pages += n_copies;
+		bggc_n_free_pages += N_PAGES_PER_BLOCK - n_copies;
+	}
+	else{
+		fggc_n_victim_blocks++;
+		fggc_n_copy_pages += n_copies;
+		fggc_n_free_pages += N_PAGES_PER_BLOCK - n_copies;
+	}
+#endif
 
 #ifdef MONITOR_ON
 	UPDATE_LOG(LOG_GC_AMP, n_copies);
@@ -401,14 +465,16 @@ block_entry* SELECT_VICTIM_BLOCK_FOR_BGGC(void)
 
 	int i;
 	int n_bggc_planes = 0;
+	int n_fggc_planes = 0;
 
 	/* Check the number of bggc candidate planes */
 	for(i=0; i<N_IO_CORES; i++){
 		n_bggc_planes += GET_N_BGGC_PLANES(i);
+		n_fggc_planes += GET_N_FGGC_PLANES(i);
 	}
 
 	/* If there is no candidate planes, return */
-	if(n_bggc_planes == 0)
+	if(n_bggc_planes == 0 && n_fggc_planes == 0)
 		return NULL;
 
 	block_entry* victim_block = NULL;
@@ -424,7 +490,7 @@ block_entry* SELECT_VICTIM_BLOCK_FOR_BGGC(void)
 
 		/* If the plane is bggc candidate,
 				select a victim block from the plane */
-		if(plane_state == NEED_BGGC){
+		if(plane_state == NEED_BGGC || plane_state == NEED_FGGC){
 			victim_block = SELECT_VICTIM_BLOCK_FROM_PLANE(cur_plane);
 		}
 
@@ -439,12 +505,6 @@ block_entry* SELECT_VICTIM_BLOCK_FOR_BGGC(void)
 
 		/* If the victim block is selected, return */
 		if(victim_block != NULL){
-#ifdef BGGC_DEBUG
-			printf("[%s] f:%d p:%d b:%d is selected.\n",
-				__FUNCTION__, victim_block->pbn.path.flash,
-						victim_block->pbn.path.plane,
-						victim_block->pbn.path.block);
-#endif
 			return victim_block;
 		}
 

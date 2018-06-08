@@ -17,9 +17,11 @@ typedef struct block_state_entry
 {
 	uint32_t n_valid_pages;
 	int type;
+	int core_id;		// this field indicates the core
+				// who performs gc for this bs entry
 	uint32_t erase_count;
 	bitmap_t valid_array;
-
+	pthread_mutex_t lock;
 }block_state_entry;
 
 typedef struct block_entry
@@ -102,8 +104,9 @@ int UPDATE_INVERSE_MAPPING(ppn_t ppn, int64_t lpn);
 
 /* Get and Update the block state */
 block_state_entry* GET_BLOCK_STATE_ENTRY(pbn_t pbn);
-int UPDATE_BLOCK_STATE(pbn_t pbn, int type);
-int UPDATE_BLOCK_STATE_ENTRY(pbn_t pbn, int32_t offset, int valid);
+int UPDATE_BLOCK_STATE(int core_id, pbn_t pbn, int type);
+int UPDATE_BLOCK_STATE_ENTRY(int core_id, pbn_t pbn, int32_t offset, int valid);
+int COUNT_BLOCK_STATE_ENTRY(pbn_t pbn);
 
 /* Check, Get, and Update the state of the Flash or the Plane */
 int IS_AVAILABLE_FLASH(flash_info* flash_i);

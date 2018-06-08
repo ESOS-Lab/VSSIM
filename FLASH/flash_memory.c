@@ -215,9 +215,9 @@ void FLASH_STATE_CHECKER(int core_id)
 			channel_nb = cur_flash->channel_nb;
 			cur_plane = &cur_flash->plane[i];
 
-//TEMP
-/*
-			if(cur_plane->data_reg.state != REG_NOOP){
+#ifdef FLASH_DEBUG_LOOP
+			if(cur_plane->data_reg.state != REG_NOOP
+					&& cur_plane->data_reg.core_id == core_id){
 				printf("[%s] %d core : f %d p %d (cmd %u) data state: %d (%ld), index: %d / %d, core_id: %d (%d / %d)\n", 
 					__FUNCTION__, core_id, 
 					cur_flash->flash_nb, i, cur_plane->cmd,
@@ -230,7 +230,7 @@ void FLASH_STATE_CHECKER(int core_id)
 					io_proc_i[core_id].n_completed_io
 				);
 			}
-*/
+#endif
 
 			/* Update data register state of this plane */
 			UPDATE_DATA_REGISTER(core_id, cur_plane, channel_nb, t_now, i);
@@ -932,6 +932,11 @@ int FLASH_PAGE_WRITE(int core_id, ppn_t ppn)
 
 	plane* cur_plane = &flash[flash_nb].plane[plane_nb];
 
+#ifdef FLASH_DEBUG
+	printf("[%s] %d-core write to f %d p %d\n",
+		__FUNCTION__, core_id, flash_nb, plane_nb);
+#endif
+
 	/* Get plane list lock */
 	pthread_mutex_lock(&cur_plane->lock);
 
@@ -949,6 +954,11 @@ int FLASH_PAGE_WRITE(int core_id, ppn_t ppn)
 	cur_plane->core_id_list[index] = core_id;
 	cur_plane->n_entries++;
 	
+#ifdef FLASH_DEBUG
+	printf("[%s] %d-core insert w entry to %d index\n",
+		__FUNCTION__, core_id, index);
+#endif
+
 	/* Release list lock */
 	pthread_mutex_unlock(&cur_plane->lock);
 
@@ -1001,9 +1011,12 @@ int FLASH_PAGE_COPYBACK(int core_id, ppn_t dst_ppn, ppn_t src_ppn)
 	plane* cur_plane = &flash[flash_nb].plane[plane_nb];
 
 	/* Get ppn list index */
+	pthread_mutex_lock(&cur_plane->lock);
+
+	/* Get ppn list index */
 	index = cur_plane->n_entries;
 
-	if(index != 0){
+	if(index >= N_PPNS_PER_PLANE){
 		printf("ERROR[%s] Exceed ppn list index: %u\n",
 				__FUNCTION__, index);
 		return FAIL;
@@ -1017,6 +1030,11 @@ int FLASH_PAGE_COPYBACK(int core_id, ppn_t dst_ppn, ppn_t src_ppn)
 
 	cur_plane->n_entries++;
 	
+	pthread_mutex_unlock(&cur_plane->lock);
+
+	/* Update io proc info */
+	io_proc_i[core_id].n_submitted_io++;
+
 	return SUCCESS;
 }
 
@@ -1046,6 +1064,9 @@ int FLASH_PAGE_COPYBACK_PHASE2(int core_id, ppn_t dst_ppn, ppn_t src_ppn)
 	cur_plane->n_entries++;
 	
 	pthread_mutex_unlock(&cur_plane->lock);
+
+	/* Update io proc info */
+	io_proc_i[core_id].n_submitted_io++;
 
 	return SUCCESS;
 }
@@ -1197,6 +1218,11 @@ bool CHECK_IO_COMPLETION(int core_id)
 
 	if(io_proc_i[core_id].n_submitted_io
 			== io_proc_i[core_id].n_completed_io){
+
+#ifdef FLASH_DEBUG
+		printf("[%s] %d-core io completed!\n",
+			__FUNCTION__, core_id);
+#endif
 
 		io_proc_i[core_id].n_submitted_io = 0;
 		io_proc_i[core_id].n_completed_io = 0;

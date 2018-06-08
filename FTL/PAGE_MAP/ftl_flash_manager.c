@@ -158,7 +158,7 @@ int INIT_INVERSE_MAPPING_TABLE(int init_info)
 
 int INIT_BLOCK_STATE_TABLE(int init_info)
 {
-	int i, j;
+	int i, j, k;
 	int ret;
 
 	/* Allocation Memory for Inverse Block Mapping Table */
@@ -190,6 +190,13 @@ int INIT_BLOCK_STATE_TABLE(int init_info)
 							__FUNCTION__);
 						return -1;
 					}
+					
+					block_state_entry* cur_bs_entry = 
+						(block_state_entry*)flash_i[i].plane_i[j].block_state_table;
+					for(k=0; k<N_BLOCKS_PER_PLANE; k++){
+						pthread_mutex_init(&cur_bs_entry->lock, NULL);
+						cur_bs_entry += 1;
+					}
 				}
 			}
 
@@ -207,11 +214,13 @@ int INIT_BLOCK_STATE_TABLE(int init_info)
 				block_state_entry* cur_bs_entry = 
 						(block_state_entry*)flash_i[i].plane_i[j].block_state_table;
 
-				for(j=0; j<N_BLOCKS_PER_PLANE; j++){
+				for(k=0; k<N_BLOCKS_PER_PLANE; k++){
 					cur_bs_entry->n_valid_pages	= 0;
 					cur_bs_entry->type		= EMPTY_BLOCK;
+					cur_bs_entry->core_id		= -1;
 					cur_bs_entry->erase_count	= 0;
 					cur_bs_entry->valid_array	= NULL;
+					pthread_mutex_init(&cur_bs_entry->lock, NULL);
 					cur_bs_entry += 1;
 				}
 			}
@@ -647,8 +656,6 @@ void TERM_EMPTY_BLOCK_LIST(void)
 	}
 
 	/* Write empty block entries to file */
-	printf("[%s] %d, %d\n", __FUNCTION__, N_FLASH, N_PLANES_PER_FLASH);
-
 	for(i=0; i<N_FLASH; i++){
 		for(j=0; j<N_PLANES_PER_FLASH; j++){
 
@@ -1090,7 +1097,7 @@ int UPDATE_INVERSE_MAPPING(ppn_t ppn,  int64_t lpn)
 	return SUCCESS;
 }
 
-int UPDATE_BLOCK_STATE(pbn_t pbn, int type)
+int UPDATE_BLOCK_STATE(int core_id, pbn_t pbn, int type)
 {
         int i;
         block_state_entry* bs_entry = GET_BLOCK_STATE_ENTRY(pbn);
@@ -1101,7 +1108,7 @@ int UPDATE_BLOCK_STATE(pbn_t pbn, int type)
 
 		/* Fill zeros to the valid array */
                 for(i=0; i<N_PAGES_PER_BLOCK; i++){
-                        UPDATE_BLOCK_STATE_ENTRY(pbn, i, INVALID);
+                        UPDATE_BLOCK_STATE_ENTRY(core_id, pbn, i, INVALID);
                 }
 
 		/* Initialize the number of valid pages */
@@ -1111,7 +1118,7 @@ int UPDATE_BLOCK_STATE(pbn_t pbn, int type)
         return SUCCESS;
 }
 
-int UPDATE_BLOCK_STATE_ENTRY(pbn_t pbn, int32_t offset, int valid)
+int UPDATE_BLOCK_STATE_ENTRY(int core_id, pbn_t pbn, int32_t offset, int valid)
 {
 	int32_t flash = (int32_t)pbn.path.flash;
 	int32_t plane = (int32_t)pbn.path.plane;
@@ -1126,6 +1133,11 @@ int UPDATE_BLOCK_STATE_ENTRY(pbn_t pbn, int32_t offset, int valid)
 	}
 
 	block_state_entry* bs_entry = GET_BLOCK_STATE_ENTRY(pbn);
+
+	if(bs_entry->core_id != core_id){
+		pthread_mutex_lock(&bs_entry->lock);
+	}
+
 	bitmap_t valid_array = bs_entry->valid_array;
 
 	if(valid == VALID){
@@ -1140,7 +1152,28 @@ int UPDATE_BLOCK_STATE_ENTRY(pbn_t pbn, int32_t offset, int valid)
 		printf("ERROR[%s] Wrong valid value\n", __FUNCTION__);
 	}
 
+	if(bs_entry->core_id != core_id){
+		pthread_mutex_unlock(&bs_entry->lock);
+	}
+
 	return SUCCESS;
+}
+
+int COUNT_BLOCK_STATE_ENTRY(pbn_t pbn)
+{
+	int i;
+	int count = 0;
+	
+	block_state_entry* bs_entry = GET_BLOCK_STATE_ENTRY(pbn);
+	bitmap_t valid_array = bs_entry->valid_array;
+
+	for(i=0; i<N_PAGES_PER_BLOCK; i++){
+		if(TEST_BITMAP_MASK(valid_array, i)){
+			count++;
+		}
+	}
+
+	return count;
 }
 
 int IS_AVAILABLE_FLASH(flash_info* flash_i)

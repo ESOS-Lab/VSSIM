@@ -7,7 +7,7 @@
 
 #include "common.h"
 
-int vssim_exit;
+int vssim_core_exit;
 
 pthread_t* vssim_thread_id;
 pthread_t temp_thread_id;
@@ -40,7 +40,7 @@ void INIT_VSSIM_CORE(void)
 	long thread_id = 0;
 	int index = 0;
 
-	vssim_exit = 0;
+	vssim_core_exit = 0;
 
 	vssim_thread_id = (pthread_t*)calloc(sizeof(pthread_t), N_CORES);
 	if(vssim_thread_id == NULL){
@@ -234,10 +234,19 @@ void INIT_FLASH_LIST(int core_id)
 	}
 }
 
+void WAIT_VSSIM_CORE_EXIT(void)
+{
+	void* status;
+
+	vssim_core_exit = 1;
+
+	if(BACKGROUND_GC_ENABLE)
+		pthread_join(vssim_thread_id[N_CORES-1], &status);
+}
+
 void TERM_VSSIM_CORE(void)
 {
 	int i;
-	vssim_exit = 1;
 
 	for(i=0; i<N_IO_CORES; i++){
 
@@ -286,7 +295,7 @@ void *FIRM_IO_BUF_THREAD_MAIN_LOOP(void *arg)
 			FIRM_FLUSH_EVENT(cur_entry);
 		}
 
-	}while(vssim_exit != 1);
+	}while(vssim_core_exit != 1);
 
 	return NULL;
 }
@@ -354,7 +363,7 @@ void *SSD_IO_THREAD_MAIN_LOOP(void *arg)
 					&ts_timeout);
 		}
 
-	}while(vssim_exit != 1);
+	}while(vssim_core_exit != 1);
 
 	return NULL;
 }
@@ -362,6 +371,7 @@ void *SSD_IO_THREAD_MAIN_LOOP(void *arg)
 
 void *BACKGROUND_GC_THREAD_MAIN_LOOP(void *arg)
 {
+	long retval;
 	long t_sleep_ms = GC_THREAD_MIN_SLEEP_TIME;
 	block_entry* victim_block = NULL;
 
@@ -388,8 +398,20 @@ void *BACKGROUND_GC_THREAD_MAIN_LOOP(void *arg)
 			DECREASE_SLEEP_TIME(&t_sleep_ms);
 		}
 
-	}while(vssim_exit != 1);
-	
+	}while(vssim_core_exit != 1);
+
+#ifdef BGGC_DEBUG
+        printf("[%s]\t%ld\t%ld\t%ld\t%ld\t%ld\t%ld\n",__FUNCTION__,
+                                fggc_n_victim_blocks,
+                                fggc_n_copy_pages,
+                                fggc_n_free_pages,
+                                bggc_n_victim_blocks,
+                                bggc_n_copy_pages,
+                                bggc_n_free_pages);
+#endif
+
+	pthread_exit((void*)&retval);
+
 	return NULL;
 }
 

@@ -12,7 +12,7 @@
 
 int64_t get_usec_nvme(void);
 
-extern bool vssim_exit;
+//extern bool vssim_exit;
 typedef void CallbackFunc(void *opaque, int ret);
 
 void SSD_INIT(void);

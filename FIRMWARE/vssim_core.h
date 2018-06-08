@@ -91,6 +91,7 @@ void MAKE_TIMEOUT(struct timespec *tsp, long timeout_usec);
 /* Initialize vssim core structure */
 void INIT_VSSIM_CORE(void);
 void TERM_VSSIM_CORE(void);
+void WAIT_VSSIM_CORE_EXIT(void);
 void INIT_PER_CORE_REQUEST_QUEUE(core_req_queue* cr_queue);
 void INIT_FLASH_LIST(int core_id);
 int GET_NEXT_FLASH_LIST_INDEX(int core_id, int cur_flash_index);

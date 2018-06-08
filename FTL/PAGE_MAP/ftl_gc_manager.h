@@ -15,6 +15,17 @@ extern int64_t t_total_gc;
 extern unsigned int gc_count;
 extern int bggc_core_id;
 
+#ifdef BGGC_DEBUG
+extern int64_t bggc_n_victim_blocks = 0;
+extern int64_t bggc_n_copy_pages = 0;
+extern int64_t bggc_n_free_pages = 0;
+
+extern int64_t fggc_n_victim_blocks = 0;
+extern int64_t fggc_n_copy_pages = 0;
+extern int64_t fggc_n_free_pages = 0;
+#endif
+
+
 int GET_GC_LOCK(plane_info* plane_i);
 void RELEASE_GC_LOCK(plane_info* plane_i);
 

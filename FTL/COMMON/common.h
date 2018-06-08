@@ -99,6 +99,8 @@ int64_t get_usec(void);
 //#define BGGC_DEBUG
 
 /* FLASH Debugging */
+//#define FLASH_DEBUG
+//#define FLASH_DEBUG_LOOP
 
 /* FIRMWARE Debugging */
 //#define IO_CORE_DEBUG

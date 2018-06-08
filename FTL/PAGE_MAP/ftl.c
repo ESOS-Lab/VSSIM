@@ -63,6 +63,7 @@ void FTL_TERM(void)
 		g_term = 1;
 
 		printf("[%s] start\n", __FUNCTION__);
+		WAIT_VSSIM_CORE_EXIT();
 
 		TERM_IO_BUFFER();
 
@@ -114,6 +115,10 @@ void FTL_DISCARD(int core_id, uint64_t sector_nb, uint32_t length)
 		printf("ERROR[%s] Exceed Sector number\n", __FUNCTION__);
                 return;
         }
+
+#ifdef FTL_DEBUG
+	printf("[%s] %d-core: Discard is called!\n", __FUNCTION__, core_id);
+#endif
 
 	uint64_t lba = sector_nb;
 	int64_t lpn;
@@ -287,17 +292,18 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 
 		write_sects = SECTORS_PER_PAGE - left_skip - right_skip;
 
-		ret = GET_NEW_PAGE(core_id, temp_pbn, MODE_OVERALL, &new_ppn);
+		ret = GET_NEW_PAGE(core_id, temp_pbn, MODE_OVERALL, &new_ppn, 0);
 		if(ret == FAIL){
 			printf("ERROR[%s] Get new page fail \n", __FUNCTION__);
 			return FAIL;
 		}
 
 #ifdef FTL_DEBUG
-		printf("[%s] %d core: get new page, f:%d, p:%d, b:%d, p:%d\n",
+		printf("[%s] %d-core: get new page, f %d p %d b %d p %d (plane state: %d)\n",
 				__FUNCTION__, core_id, new_ppn.path.flash,
 				new_ppn.path.plane, new_ppn.path.block, 
-				new_ppn.path.page);
+				new_ppn.path.page,
+				flash_i[new_ppn.path.flash].plane_i[new_ppn.path.plane].p_state);
 #endif
 
 		lpn = lba / (int64_t)SECTORS_PER_PAGE;
@@ -310,13 +316,13 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 
 			FLASH_PAGE_WRITE(core_id, new_ppn);
 
-			PARTIAL_UPDATE_PAGE_MAPPING(core_id, lpn, new_ppn, \
+			PARTIAL_UPDATE_PAGE_MAPPING(core_id, core_id, lpn, new_ppn, \
 					old_ppn, left_skip, right_skip);
 		}
 		else{
 			ret = FLASH_PAGE_WRITE(core_id, new_ppn);
 
-			UPDATE_OLD_PAGE_MAPPING(core_id, lpn);
+			UPDATE_OLD_PAGE_MAPPING(core_id, core_id, lpn);
 			UPDATE_NEW_PAGE_MAPPING(core_id, lpn, new_ppn);
 		}
 
@@ -335,7 +341,7 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 	WAIT_FLASH_IO(core_id, WRITE, n_write_pages);
 
 #ifdef FTL_DEBUG
-	printf("[%s] End\n", __FUNCTION__);
+	printf("[%s] %d core: End\n", __FUNCTION__, core_id);
 #endif
 	return ret;
 }
