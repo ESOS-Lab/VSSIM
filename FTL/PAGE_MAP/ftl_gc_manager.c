@@ -11,7 +11,6 @@ unsigned int gc_count = 0;
 int64_t t_total_gc = 0;
 int bggc_core_id;
 
-#ifdef BGGC_DEBUG
 int64_t bggc_n_victim_blocks = 0;
 int64_t bggc_n_copy_pages = 0;
 int64_t bggc_n_free_pages = 0;	
@@ -19,7 +18,6 @@ int64_t bggc_n_free_pages = 0;
 int64_t fggc_n_victim_blocks = 0;
 int64_t fggc_n_copy_pages = 0;
 int64_t fggc_n_free_pages = 0;	
-#endif
 
 int GET_GC_LOCK(plane_info* cur_plane)
 {
@@ -387,22 +385,27 @@ int GARBAGE_COLLECTION(int core_id, block_entry* victim_entry)
 
 	gc_count++;
 
+#ifdef GET_GC_INFO
+	static int64_t bggc_call_count = 0;
+	static int64_t fggc_call_count = 0;
+
+	if(core_id == bggc_core_id){
+		bggc_call_count++;
+		fprintf(fp_gc_info,"BGGC\t%ld\t%d\t%d\n", bggc_call_count, n_copies, 
+				N_PAGES_PER_BLOCK - n_copies);
+	}
+	else{
+		fggc_call_count++;
+		fprintf(fp_gc_info,"FGGC\t%ld\t%d\t%d\n", fggc_call_count, n_copies, 
+				N_PAGES_PER_BLOCK - n_copies);
+
+	}
+#endif
+
 #ifdef GC_DEBUG
 	printf("[%s] %d-core end gc\n", __FUNCTION__, core_id);
 #endif
 
-#ifdef BGGC_DEBUG
-	if(core_id == bggc_core_id){
-		bggc_n_victim_blocks++;
-		bggc_n_copy_pages += n_copies;
-		bggc_n_free_pages += N_PAGES_PER_BLOCK - n_copies;
-	}
-	else{
-		fggc_n_victim_blocks++;
-		fggc_n_copy_pages += n_copies;
-		fggc_n_free_pages += N_PAGES_PER_BLOCK - n_copies;
-	}
-#endif
 
 #ifdef MONITOR_ON
 	UPDATE_LOG(LOG_GC_AMP, n_copies);

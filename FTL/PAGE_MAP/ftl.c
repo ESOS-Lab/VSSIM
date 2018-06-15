@@ -11,6 +11,9 @@ int g_init = 0;
 int g_term = 0;
 pthread_mutex_t term_lock = PTHREAD_MUTEX_INITIALIZER;
 
+FILE* fp_ch_util;
+FILE* fp_w_event;
+
 /* return value of each init function 
  * 	-1: return FAIL
  *	 0: First boot
@@ -44,8 +47,20 @@ void FTL_INIT(void)
 		INIT_FLASH();
 	
 		g_init = 1;
-
 		printf("[%s] complete\n", __FUNCTION__);
+
+#ifdef GET_CH_UTIL_INFO
+		fp_ch_util = fopen("./ch_util_info.txt", "a");
+		if(fp_ch_util == NULL){
+			printf("ERROR[%s] open ch_util_info file fail\n", __FUNCTION__);
+		}
+#endif
+#ifdef GET_W_EVENT_INFO
+		fp_w_event = fopen("./w_event_info.txt", "a");
+		if(fp_w_event == NULL){
+			printf("ERROR[%s] open w_event_info file fail\n", __FUNCTION__);
+		}
+#endif
 		return;
 
 fail:
@@ -81,9 +96,17 @@ void FTL_TERM(void)
 		TERM_FLASH();
 
 		printf("[%s] complete\n", __FUNCTION__);
-		return;
 	}
 	pthread_mutex_unlock(&term_lock);
+
+#ifdef GET_CH_UTIL_INFO
+	fclose(fp_ch_util);
+#endif
+#ifdef GET_W_EVENT_INFO
+	fclose(fp_w_event);
+#endif
+
+	return;
 }
 
 int FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)
@@ -198,6 +221,11 @@ int _FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)
 
 	void* ret_buf = NULL;
 
+#ifdef GET_CH_UTIL_INFO
+	int n_ch_util = 0;	
+	double ch_util = 0;	
+#endif
+
 	while(remain > 0){
 
 		if(remain > SECTORS_PER_PAGE - left_skip){
@@ -242,6 +270,17 @@ int _FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)
 	/* Wait until all flash io are completed */
 	WAIT_FLASH_IO(core_id, READ, n_read_pages);
 
+#ifdef GET_CH_UTIL_INFO
+	if(n_pages > vs_core[core_id].n_flash)
+		n_ch_util = vs_core[core_id].n_flash;
+	else
+		n_ch_util = n_pages;
+
+	ch_util = (double) n_ch_util / vs_core[core_id].n_flash;
+
+	fprintf(fp_ch_util, "R\t%d\t%d\t%d\t%lf\n", core_id, n_ch_util, n_pages, ch_util);
+#endif
+
 #ifdef FTL_DEBUG
 	printf("[%s] Complete\n", __FUNCTION__);
 #endif
@@ -280,6 +319,11 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 	int ret = FAIL;
 	int n_write_pages = 0;
 	temp_pbn.addr = -1;
+
+#ifdef GET_CH_UTIL_INFO
+	int n_ch_util = 0;
+	double ch_util = 0;
+#endif
 
 	while(remain > 0){
 
@@ -335,6 +379,17 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 #ifdef FTL_DEBUG
 	printf("[%s] %d core: wait for writing %d pages\n",
 			__FUNCTION__, core_id, n_write_pages);
+#endif
+
+#ifdef GET_CH_UTIL_INFO
+	if(n_write_pages > vs_core[core_id].n_flash)
+		n_ch_util = vs_core[core_id].n_flash;
+	else
+		n_ch_util = n_write_pages;
+
+	ch_util = (double) n_ch_util / vs_core[core_id].n_flash;
+
+	fprintf(fp_ch_util, "W\t%d\t%d\t%d\t%lf\n", core_id, n_ch_util, n_write_pages, ch_util);
 #endif
 
 	/* Wait until all flash io are completed */

@@ -10,6 +10,8 @@
 
 #include "common.h"
 
+extern FILE* fp_w_event;
+
 void FTL_INIT(void);
 void FTL_TERM(void);
 

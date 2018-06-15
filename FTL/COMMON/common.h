@@ -97,6 +97,9 @@ int64_t get_usec(void);
 //#define FTL_DEBUG
 //#define GC_DEBUG
 //#define BGGC_DEBUG
+//#define GET_GC_INFO
+//#define GET_CH_UTIL_INFO
+//#define GET_W_EVENT_INFO
 
 /* FLASH Debugging */
 //#define FLASH_DEBUG

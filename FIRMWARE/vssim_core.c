@@ -17,6 +17,8 @@ pthread_cond_t eq_ready = PTHREAD_COND_INITIALIZER;
 pthread_cond_t* ssd_io_ready; 
 pthread_mutex_t* ssd_io_lock;
 
+FILE* fp_gc_info;	
+
 void MAKE_TIMEOUT(struct timespec *tsp, long timeout_usec)
 {
 	struct timeval now;
@@ -232,6 +234,14 @@ void INIT_FLASH_LIST(int core_id)
 			cur_core->n_flash++;
 		}
 	}
+
+#ifdef GET_GC_INFO
+	fp_gc_info = fopen("./gc_info.txt", "a");
+	if(fp_gc_info == NULL){
+		printf("ERROR[%s] open gc info txt file fail!\n", __FUNCTION__);
+	}
+#endif
+
 }
 
 void WAIT_VSSIM_CORE_EXIT(void)
@@ -258,6 +268,10 @@ void TERM_VSSIM_CORE(void)
 
 	free(vssim_thread_id);
 	free(vs_core);
+
+#ifdef GET_GC_INFO
+	fclose(fp_gc_info);
+#endif
 }
 
 
@@ -365,6 +379,14 @@ void *SSD_IO_THREAD_MAIN_LOOP(void *arg)
 
 	}while(vssim_core_exit != 1);
 
+#ifdef BGGC_DEBUG
+	if(!BACKGROUND_GC_ENABLE)
+	        printf("[%s]\t%ld\t%ld\t%ld\n",__FUNCTION__,
+        	                        fggc_n_victim_blocks,
+                	                fggc_n_copy_pages,
+                        	        fggc_n_free_pages);
+#endif
+
 	return NULL;
 }
 
@@ -399,16 +421,6 @@ void *BACKGROUND_GC_THREAD_MAIN_LOOP(void *arg)
 		}
 
 	}while(vssim_core_exit != 1);
-
-#ifdef BGGC_DEBUG
-        printf("[%s]\t%ld\t%ld\t%ld\t%ld\t%ld\t%ld\n",__FUNCTION__,
-                                fggc_n_victim_blocks,
-                                fggc_n_copy_pages,
-                                fggc_n_free_pages,
-                                bggc_n_victim_blocks,
-                                bggc_n_copy_pages,
-                                bggc_n_free_pages);
-#endif
 
 	pthread_exit((void*)&retval);
 
@@ -502,6 +514,7 @@ void INSERT_RW_TO_PER_CORE_EVENT_QUEUE(event_queue_entry* eq_entry, int w_buf_in
 	uint64_t left_skip = sector_nb % SECTORS_PER_PAGE;
 	uint64_t right_skip = 0;
 	uint32_t n_pages = 0;
+	int32_t n_allocated_cores = 0;
 
 	uint64_t per_core_sector_nb[N_IO_CORES];
 	uint32_t per_core_length[N_IO_CORES];
@@ -539,6 +552,8 @@ void INSERT_RW_TO_PER_CORE_EVENT_QUEUE(event_queue_entry* eq_entry, int w_buf_in
 			per_core_io_flag[core_id] = true;
 
 			eq_entry->n_child++;
+
+			n_allocated_cores++;
 		}
 		else{
 			if(per_core_sector_nb[core_id] + per_core_length[core_id]
@@ -561,12 +576,19 @@ void INSERT_RW_TO_PER_CORE_EVENT_QUEUE(event_queue_entry* eq_entry, int w_buf_in
 
 	eq_entry->n_pages = n_pages;
 
+#ifdef GET_W_EVENT_INFO
+	fprintf(fp_w_event,"%lu\t%u\t%d\t%d\n", eq_entry->sector_nb, 
+				eq_entry->length, eq_entry->n_pages,
+				n_allocated_cores);
+#endif
+
 	for(i=0; i<N_IO_CORES; i++){
 
 		if(per_core_io_flag[i]){
 			/* Insert new per core request to the per core queue */
 			INSERT_NEW_PER_CORE_REQUEST(i, eq_entry,
 					per_core_sector_nb[i], per_core_length[i], w_buf_index);
+
 		}
 	}
 }

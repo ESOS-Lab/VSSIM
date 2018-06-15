@@ -11,6 +11,8 @@
 #include <stdbool.h>
 #include "firm_buffer_manager.h"
 
+extern FILE* fp_gc_info;
+
 extern pthread_cond_t* ssd_io_ready;
 
 typedef void CallbackFunc(void *opaque, int ret);
