@@ -24,6 +24,7 @@ typedef struct core_req_entry
 	enum vssim_io_type io_type;
 	uint64_t sector_nb;
 	uint32_t length;
+	int n_pages;
 	void* buf;
 	event_queue_entry* parent;
 
@@ -52,6 +53,7 @@ typedef struct vssim_core
 
 	int flash_index;
 	int n_flash;
+	int n_channel;
 	flash_info* flash_i;
 
 	/* the number of bggc candidate planes */

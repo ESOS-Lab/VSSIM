@@ -883,12 +883,43 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 
 	pthread_mutex_lock(&cur_w_queue->lock);
 
+	int n_entries = cur_w_queue->entry_nb;
+	int n_remain_pages = 0;
+	int n_wait_pages = 0;
+	double weight = 0;
+
 #ifdef DEL_FIRM_OVERHEAD
 	bool first_entry = true;
 	int64_t remains;
 	int64_t t_prev = 0;
+
+	if(vs_core[core_id].n_channel > 2)
+		weight = 2;
+	else
+		weight = vs_core[core_id].n_channel;
 #endif
 
+	cr_entry = cur_w_queue->head;
+
+	while(n_entries != 0){
+
+#ifdef IO_CORE_DEBUG
+		printf("[%s] core %d: %lu-th event dequeue\n",
+			__FUNCTION__, core_id, cr_entry->seq_nb);
+#endif
+		/* Write data to Flash memory */
+		cr_entry->n_pages = FTL_WRITE(core_id, cr_entry->sector_nb, cr_entry->length);
+
+		/* Get next cr_entry */
+#ifdef IO_CORE_DEBUG
+		printf("[%s] core %d: %lu-th event FTL write complete\n",
+			__FUNCTION__, core_id, cr_entry->seq_nb);
+#endif
+		cr_entry = cr_entry->next;
+		n_entries--;
+	}	
+
+	/* post processing */
 	while(cur_w_queue->entry_nb != 0){
 
 		/* Dequeue the write request */
@@ -896,19 +927,28 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 		cur_w_queue->head = cr_entry->next;
 		cur_w_queue->entry_nb--;
 
-#ifdef IO_CORE_DEBUG
-		printf("[%s] core %d: %lu-th event dequeue\n",
-			__FUNCTION__, core_id, cr_entry->seq_nb);
-#endif
+		n_wait_pages = cr_entry->n_pages;
+
+		if(n_remain_pages != 0){
+			if(cr_entry->n_pages <= n_remain_pages){
+				n_wait_pages = 0;
+				n_remain_pages -= cr_entry->n_pages;
+			}
+			else{
+				n_wait_pages -= n_remain_pages;
+				n_remain_pages = 0;
+			}
+		}
 
 #ifdef DEL_FIRM_OVERHEAD
 		/* Remove firm overhead */
 		if(first_entry || cr_entry->length <= SECTORS_PER_PAGE){
 			if(first_entry){
-				remains = SET_FIRM_OVERHEAD(core_id, WRITE, get_usec()-cr_entry->t_start);
+				remains = SET_FIRM_OVERHEAD(core_id, WRITE, (get_usec()-cr_entry->t_start)*weight);
 			}
 			else{
 				remains = SET_FIRM_OVERHEAD(core_id, WRITE, remains + (cr_entry->t_start - t_prev)*N_IO_CORES);
+//				remains = SET_FIRM_OVERHEAD(core_id, WRITE, remains + (cr_entry->t_start - t_prev)*N_CHANNELS);
 			}
 			t_prev = cr_entry->t_start;
 		}
@@ -916,27 +956,25 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 			remains = SET_FIRM_OVERHEAD(core_id, WRITE, remains);
 #endif
 
-		/* Write data to Flash memory */
-		FTL_WRITE(core_id, cr_entry->sector_nb, cr_entry->length);
-
-#ifdef IO_CORE_DEBUG
-		printf("[%s] core %d: %lu-th event FTL write complete\n",
-			__FUNCTION__, core_id, cr_entry->seq_nb);
-#endif
-
-		/* post processing */
-		END_PER_CORE_WRITE_REQUEST(cr_entry, w_buf_index);
+		/* Wait until all flash io are completed */
+		if(n_wait_pages != 0)
+			n_remain_pages += WAIT_FLASH_IO(core_id, WRITE, n_wait_pages);
 
 #ifdef DEL_FIRM_OVERHEAD
 		/* Recover the init delay */
 		SET_FIRM_OVERHEAD(core_id, WRITE, 0);
 		first_entry = false;
 #endif
-	}	
+
+		END_PER_CORE_WRITE_REQUEST(cr_entry, w_buf_index);
+	}
 
 	/* Init the per core write queue */
 	cur_w_queue->head = NULL;
 	cur_w_queue->tail = NULL;
+
+	/* If needed, perform foreground GC */
+	FGGC_CHECK(core_id);
 
 	pthread_mutex_unlock(&cur_w_queue->lock);
 }

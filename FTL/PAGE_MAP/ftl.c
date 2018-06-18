@@ -120,16 +120,17 @@ int FTL_READ(int core_id, uint64_t sector_nb, uint32_t length)
 	return ret;
 }
 
-void FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
+int FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 {
-	int ret;
+	int n_pages;
 
-	ret = _FTL_WRITE(core_id, sector_nb, length);
-	if(ret == FAIL)
+	n_pages = _FTL_WRITE(core_id, sector_nb, length);
+	if(n_pages == -1)
 		printf("ERROR[%s] _FTL_WRITE function returns FAIL\n", __FUNCTION__);		
 
 	/* If needed, perform foreground GC */
-	FGGC_CHECK(core_id);
+
+	return n_pages;
 }
 
 void FTL_DISCARD(int core_id, uint64_t sector_nb, uint32_t length)
@@ -302,7 +303,7 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 
 	if(sector_nb + length > N_SECTORS){
 		printf("ERROR[%s] Exceed Sector number\n", __FUNCTION__);
-                return FAIL;
+                return -1;
         }
 
 	uint64_t lba = sector_nb;
@@ -320,11 +321,6 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 	int n_write_pages = 0;
 	temp_pbn.addr = -1;
 
-#ifdef GET_CH_UTIL_INFO
-	int n_ch_util = 0;
-	double ch_util = 0;
-#endif
-
 	while(remain > 0){
 
 		if(remain > SECTORS_PER_PAGE - left_skip){
@@ -339,7 +335,7 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 		ret = GET_NEW_PAGE(core_id, temp_pbn, MODE_OVERALL, &new_ppn, 0);
 		if(ret == FAIL){
 			printf("ERROR[%s] Get new page fail \n", __FUNCTION__);
-			return FAIL;
+			return -1;
 		}
 
 #ifdef FTL_DEBUG
@@ -381,22 +377,8 @@ int _FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length)
 			__FUNCTION__, core_id, n_write_pages);
 #endif
 
-#ifdef GET_CH_UTIL_INFO
-	if(n_write_pages > vs_core[core_id].n_flash)
-		n_ch_util = vs_core[core_id].n_flash;
-	else
-		n_ch_util = n_write_pages;
-
-	ch_util = (double) n_ch_util / vs_core[core_id].n_flash;
-
-	fprintf(fp_ch_util, "W\t%d\t%d\t%d\t%lf\n", core_id, n_ch_util, n_write_pages, ch_util);
-#endif
-
-	/* Wait until all flash io are completed */
-	WAIT_FLASH_IO(core_id, WRITE, n_write_pages);
-
 #ifdef FTL_DEBUG
 	printf("[%s] %d core: End\n", __FUNCTION__, core_id);
 #endif
-	return ret;
+	return n_write_pages;
 }

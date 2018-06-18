@@ -17,7 +17,7 @@
 #define CMD_BLOCK_ERASE			0x60
 
 /* The number of ppn list per flash */
-#define N_PPNS_PER_PLANE	256
+#define N_PPNS_PER_PLANE	512
 
 enum reg_state
 {
@@ -110,10 +110,10 @@ int64_t GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(int channel_nb,
 		int64_t t_now, uint8_t cmd, plane* cur_plane, 
 		enum reg_state cur_state);
 
-void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages);
+int WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages);
 
 void UPDATE_IO_PROC_INFO(int core_id);
-bool CHECK_IO_COMPLETION(int core_id);
+bool CHECK_IO_COMPLETION(int core_id, int n_io_pages, int* remain_pages);
 
 /* Consiter QEMU, FIRM overhead */
 int64_t SET_FIRM_OVERHEAD(int core_id, int io_type, int64_t overhead);

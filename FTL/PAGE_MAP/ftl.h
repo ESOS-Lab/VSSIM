@@ -11,12 +11,13 @@
 #include "common.h"
 
 extern FILE* fp_w_event;
+extern FILE* fp_ch_util;
 
 void FTL_INIT(void);
 void FTL_TERM(void);
 
 int FTL_READ(int core_id, uint64_t sector_nb, uint32_t length);
-void FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length);
+int FTL_WRITE(int core_id, uint64_t sector_nb, uint32_t length);
 void FTL_DISCARD(int core_id, uint64_t sector_nb, uint32_t length);
 
 int _FTL_READ(int core_id, uint64_t sector_nb, uint32_t length);

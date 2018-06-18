@@ -943,8 +943,8 @@ int FLASH_PAGE_WRITE(int core_id, ppn_t ppn)
 	/* Get ppn list index */
 	index = cur_plane->n_entries;
 	if(index >= N_PPNS_PER_PLANE){
-		printf("ERROR[%s] Exceed ppn list index: %u\n",
-				__FUNCTION__, index);
+		printf("ERROR[%s] %d-core: Exceed ppn list index: %u (f %d p %d)\n",
+				__FUNCTION__, core_id, index, flash_nb, plane_nb);
 		return FAIL;
 	}
 
@@ -1172,7 +1172,7 @@ int64_t GET_AND_UPDATE_NEXT_AVAILABLE_CH_TIME(int channel_nb, int64_t t_now,
 }
 
 
-void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages)
+int WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages)
 {
 	bool ret = false;
 
@@ -1180,12 +1180,13 @@ void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages)
 	FILE* fp_io = fopen("./META/io.dat", "a");
 	int64_t start = get_usec();
 #endif
+	int remain_pages = 0;
 
 	/* Wait all inflight Flash IOs */
 	while(ret == false){
 
 		FLASH_STATE_CHECKER(core_id);
-		ret = CHECK_IO_COMPLETION(core_id);
+		ret = CHECK_IO_COMPLETION(core_id, n_io_pages, &remain_pages);
 	}
 
 #ifdef IO_PERF_DEBUG
@@ -1196,7 +1197,7 @@ void WAIT_FLASH_IO(int core_id, int io_type, int n_io_pages)
 	fclose(fp_io);
 #endif
 
-	return;
+	return remain_pages;
 }
 
 void UPDATE_IO_PROC_INFO(int core_id)
@@ -1209,24 +1210,30 @@ void UPDATE_IO_PROC_INFO(int core_id)
 	io_proc_i[core_id].n_completed_io++;
 }
 
-bool CHECK_IO_COMPLETION(int core_id)
+bool CHECK_IO_COMPLETION(int core_id, int n_io_pages, int* remain_pages)
 {
 	if(core_id == -1){
 		printf("[%s] Error: core_id %d\n", __FUNCTION__, core_id);
 		return false ;
 	}
+	int n_completed_io = io_proc_i[core_id].n_completed_io;
 
-	if(io_proc_i[core_id].n_submitted_io
-			== io_proc_i[core_id].n_completed_io){
+	if(n_completed_io >= n_io_pages){
+
+		if(n_completed_io > n_io_pages)
+			*remain_pages = n_completed_io - n_io_pages;
+		else
+			*remain_pages = 0;
 
 #ifdef FLASH_DEBUG
-		printf("[%s] %d-core io completed!\n",
-			__FUNCTION__, core_id);
+		printf("[%s] %d-core io completed! %d >= %d, sub: %d\n",
+			__FUNCTION__, core_id, n_completed_io, n_io_pages, 
+			io_proc_i[core_id].n_submitted_io);
 #endif
 
-		io_proc_i[core_id].n_submitted_io = 0;
+		io_proc_i[core_id].n_submitted_io -= n_completed_io;
 		io_proc_i[core_id].n_completed_io = 0;
-
+		
 		return true;
 	}
 

@@ -82,6 +82,7 @@ void INIT_VSSIM_CORE(void)
 			/* Init flash list */
 			INIT_FLASH_LIST(i);
 			vs_core[i].flash_index = i;
+			vs_core[i].n_channel = 0;
 
 			/* Init GC related info */
 			vs_core[i].n_bggc_planes = 0;
@@ -129,6 +130,12 @@ void INIT_VSSIM_CORE(void)
 			vs_core[i].flush_event = NULL;
 			pthread_mutex_init(&vs_core[i].flush_lock, NULL);
 		}
+
+		for(i=0; i<N_CHANNELS; i++){
+			index = i % N_IO_CORES;
+
+			vs_core[index].n_channel++;
+		}
 	}
 
 	/* Create & Init the condition variables and mutex */
@@ -150,6 +157,7 @@ void INIT_VSSIM_CORE(void)
 
 
 	/* Create the Firmware IO buffer thread */
+	index = 0;
 	pthread_create(&vssim_thread_id[index], NULL, 
 				FIRM_IO_BUF_THREAD_MAIN_LOOP, NULL);
 	index++;
@@ -725,6 +733,7 @@ core_req_entry* CREATE_NEW_CORE_EVENT(event_queue_entry* eq_entry,
 	new_cr_entry->io_type	= eq_entry->io_type;
 	new_cr_entry->sector_nb = sector_nb;
 	new_cr_entry->length	= length;
+	new_cr_entry->n_pages	= 0;
 	new_cr_entry->buf	= eq_entry->buf;
 	new_cr_entry->parent	= eq_entry;
 	new_cr_entry->flush	= flush;
