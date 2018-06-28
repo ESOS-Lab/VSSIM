@@ -1243,6 +1243,110 @@ bool CHECK_IO_COMPLETION(int core_id, int n_io_pages, int* remain_pages)
 int64_t SET_FIRM_OVERHEAD(int core_id, int io_type, int64_t overhead)
 {
 	int i;
+	int step = 0;
+	int64_t remain_overhead = 0;
+	flash_memory* cur_flash = &flash[core_id];
+	flash_memory* init_flash = cur_flash;
+	plane* cur_plane;
+
+	remain_overhead = overhead;
+	
+	if(overhead == 0){
+		do{
+			for(i=0; i<N_PLANES_PER_FLASH; i++){
+
+				cur_plane = &cur_flash->plane[i];
+
+				/* Reset the delay to the init value  */
+				cur_plane->reg_cmd_set_delay = REG_CMD_SET_DELAY;
+				cur_plane->reg_write_delay = REG_WRITE_DELAY;
+				cur_plane->page_program_delay = PAGE_PROGRAM_DELAY;
+				cur_plane->reg_read_delay = REG_READ_DELAY;
+				cur_plane->page_read_delay = PAGE_READ_DELAY;
+				cur_plane->block_erase_delay = BLOCK_ERASE_DELAY;
+			}
+			cur_flash = cur_flash->next;
+
+		}while(cur_flash != init_flash);
+	}
+	else{
+
+		while(remain_overhead > 0 && step < 3){
+
+			if(step == 0){
+
+				if(remain_overhead > REG_CMD_SET_DELAY * 2){
+					UPDATE_FLASH_LATENCY(core_id, SET_CMD1, REG_CMD_SET_DELAY);
+					remain_overhead -= REG_CMD_SET_DELAY * 2;
+				}
+				else{
+					UPDATE_FLASH_LATENCY(core_id, SET_CMD1, remain_overhead/2);
+					remain_overhead = 0;
+				}
+				step++;
+			}
+			else if(step == 1){
+
+				if(remain_overhead > REG_WRITE_DELAY){
+					UPDATE_FLASH_LATENCY(core_id, REG_WRITE, REG_WRITE_DELAY);
+					remain_overhead -= REG_WRITE_DELAY;
+				}
+				else{
+					UPDATE_FLASH_LATENCY(core_id, REG_WRITE, REG_WRITE_DELAY);
+					remain_overhead = 0;
+				}
+				step++;
+			}
+			else if(step == 2){
+	
+				if(remain_overhead > PAGE_PROGRAM_DELAY){
+					UPDATE_FLASH_LATENCY(core_id, PAGE_PROGRAM, PAGE_PROGRAM_DELAY);
+					remain_overhead -= PAGE_PROGRAM_DELAY;
+				}
+				else{
+					UPDATE_FLASH_LATENCY(core_id, PAGE_PROGRAM, remain_overhead);
+					remain_overhead = 0;
+				}
+				step++;			
+			}
+		}
+	}
+
+	return remain_overhead;
+}
+
+void UPDATE_FLASH_LATENCY(int core_id, int reg_cmd_type, int64_t overhead)
+{
+	int i;
+	flash_memory* cur_flash = &flash[core_id];
+	flash_memory* init_flash = cur_flash;
+	plane* cur_plane;
+
+	do{
+		for(i=0; i<N_PLANES_PER_FLASH; i++){
+
+			cur_plane = &cur_flash->plane[i];
+
+			/* Reduce Flash program delay */
+			if(reg_cmd_type == SET_CMD1){
+
+				cur_plane->reg_cmd_set_delay -= overhead;
+			}
+			else if(reg_cmd_type == REG_WRITE){
+				cur_plane->reg_write_delay -= overhead;
+			}
+			else if(reg_cmd_type == PAGE_PROGRAM){
+				cur_plane->page_program_delay -= overhead;
+			}
+		}
+		cur_flash = cur_flash->next;
+
+	}while(cur_flash != init_flash);
+}
+
+int64_t SET_FIRM_OVERHEAD2(int core_id, int io_type, int64_t overhead)
+{
+	int i;
 	int64_t remain_overhead = 0;
 	flash_memory* cur_flash = &flash[core_id];
 	flash_memory* init_flash = cur_flash;

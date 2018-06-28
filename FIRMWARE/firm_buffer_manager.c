@@ -886,17 +886,10 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 	int n_entries = cur_w_queue->entry_nb;
 	int n_remain_pages = 0;
 	int n_wait_pages = 0;
-	double weight = 0;
 
 #ifdef DEL_FIRM_OVERHEAD
 	bool first_entry = true;
 	int64_t remains;
-	int64_t t_prev = 0;
-
-	if(vs_core[core_id].n_channel > 2)
-		weight = 2;
-	else
-		weight = vs_core[core_id].n_channel;
 #endif
 
 	cr_entry = cur_w_queue->head;
@@ -942,15 +935,8 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 
 #ifdef DEL_FIRM_OVERHEAD
 		/* Remove firm overhead */
-		if(first_entry || cr_entry->length <= SECTORS_PER_PAGE){
-			if(first_entry){
-				remains = SET_FIRM_OVERHEAD(core_id, WRITE, (get_usec()-cr_entry->t_start)*weight);
-			}
-			else{
-				remains = SET_FIRM_OVERHEAD(core_id, WRITE, remains + (cr_entry->t_start - t_prev)*N_IO_CORES);
-//				remains = SET_FIRM_OVERHEAD(core_id, WRITE, remains + (cr_entry->t_start - t_prev)*N_CHANNELS);
-			}
-			t_prev = cr_entry->t_start;
+		if(first_entry){
+			remains = SET_FIRM_OVERHEAD(core_id, WRITE, (get_usec()-cr_entry->t_start));
 		}
 		else
 			remains = SET_FIRM_OVERHEAD(core_id, WRITE, remains);

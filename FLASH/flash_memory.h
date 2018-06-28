@@ -116,6 +116,8 @@ void UPDATE_IO_PROC_INFO(int core_id);
 bool CHECK_IO_COMPLETION(int core_id, int n_io_pages, int* remain_pages);
 
 /* Consiter QEMU, FIRM overhead */
+void UPDATE_FLASH_LATENCY(int core_id, int reg_cmd_type, int64_t overhead);
 int64_t SET_FIRM_OVERHEAD(int core_id, int io_type, int64_t overhead);
+int64_t SET_FIRM_OVERHEAD2(int core_id, int io_type, int64_t overhead);
 
 #endif
