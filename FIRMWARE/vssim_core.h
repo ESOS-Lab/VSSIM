@@ -127,8 +127,6 @@ void END_PER_CORE_DISCARD_REQUEST(core_req_entry* cr_entry);
 void END_PER_CORE_FLUSH_REQUEST(int core_id);
 
 /* IO Core flush flag */
-void SET_FLUSH_FLAG(int core_id);
-void RESET_FLUSH_FLAG(int core_id);
 bool TEST_FLUSH_FLAG(int core_id); 
 
 /* Manipulate GC related information */

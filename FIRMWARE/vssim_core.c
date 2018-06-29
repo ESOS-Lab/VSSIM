@@ -946,28 +946,6 @@ void END_PER_CORE_FLUSH_REQUEST(int core_id)
 }
 
 
-void SET_FLUSH_FLAG(int core_id)
-{
-	vssim_core* cur_vs_core = &vs_core[core_id];
-
-	pthread_mutex_lock(&cur_vs_core->flush_lock);
-
-	cur_vs_core->flush_flag = true;
-	pthread_mutex_unlock(&cur_vs_core->flush_lock);
-}
-
-
-void RESET_FLUSH_FLAG(int core_id)
-{
-	vssim_core* cur_vs_core = &vs_core[core_id];
-
-	pthread_mutex_lock(&cur_vs_core->flush_lock);
-	cur_vs_core->flush_event = NULL;
-	cur_vs_core->flush_flag = false;
-	pthread_mutex_unlock(&cur_vs_core->flush_lock);
-}
-
-
 bool TEST_FLUSH_FLAG(int core_id)
 {
 	bool ret;
