@@ -113,6 +113,7 @@ void FIRM_READ_EVENT(event_queue_entry* r_entry);
 void FIRM_WRITE_EVENT(event_queue_entry* w_entry, bool flush);
 void FIRM_DISCARD_EVENT(event_queue_entry* dc_entry);
 void FIRM_FLUSH_EVENT(event_queue_entry* eq_entry);
+void WAIT_FLUSH_COMPLETION(void);
 
 void* CHECK_WRITE_BUFFER(int core_id, uint64_t lba, uint32_t read_sects);
 void DMA_FROM_HOST_TO_BUFFER(event_queue_entry* w_entry, int w_buf_index);

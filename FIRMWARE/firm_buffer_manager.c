@@ -216,8 +216,8 @@ void FIRM_WRITE_EVENT(event_queue_entry* w_entry, bool flush)
 		vssim_w_buf[write_buffer_index].is_full = 1;
 
 #ifdef IO_CORE_DEBUG
-		printf("%ld\t[%s] %lu-th write event: now %d-th write buffer is full\n",
-				get_usec(), __FUNCTION__, w_entry->seq_nb, write_buffer_index);
+		printf("[%s] %lu-th write event: now %d-th write buffer is full\n",
+				__FUNCTION__, w_entry->seq_nb, write_buffer_index);
 #endif
 
 		pthread_mutex_unlock(&vssim_w_buf[write_buffer_index].lock);
@@ -309,6 +309,8 @@ void FIRM_FLUSH_EVENT(event_queue_entry* eq_entry)
 
 		/* Get new IO event */
 		cur_entry = DEQUEUE_IO();
+		if(cur_entry == NULL)
+			break;
 
 		io_type = cur_entry->io_type;
 
@@ -321,6 +323,10 @@ void FIRM_FLUSH_EVENT(event_queue_entry* eq_entry)
 		else if(io_type == DISCARD){
 			FIRM_DISCARD_EVENT(cur_entry);	
 		}
+		else if(io_type == FLUSH){
+			cur_entry->flush = false;
+			UPDATE_EVENT_STATE(cur_entry, COMPLETED);
+		}
 	}	
 
 	pthread_mutex_unlock(&eq_lock);
@@ -328,6 +334,7 @@ void FIRM_FLUSH_EVENT(event_queue_entry* eq_entry)
 	eq_entry->n_child = N_IO_CORES;
 
 	/* Insert the current event to the candidate event queue */
+	eq_entry->flush = true;
 	INSERT_TO_CANDIDATE_EVENT_QUEUE(eq_entry);
 
 	/* Insert the current event to the per-core queue */
@@ -335,8 +342,30 @@ void FIRM_FLUSH_EVENT(event_queue_entry* eq_entry)
 
 	/* Wakeup all io threads */
 	WAKEUP_ALL_IO_THREADS();
+
+	/* Wait the completion of the flush event */
+	WAIT_FLUSH_COMPLETION();
 }
 
+void WAIT_FLUSH_COMPLETION(void)
+{
+	int core_id;
+
+#ifdef IO_CORE_DEBUG
+	printf("[%s] Firm thread start wait flush completion...\n", __FUNCTION__);
+#endif
+
+	for(core_id=0; core_id<N_IO_CORES; core_id++){
+		
+		while(TEST_FLUSH_FLAG(core_id)){
+
+		}
+	}
+
+#ifdef IO_CORE_DEBUG
+	printf("[%s] Wait flush end\n", __FUNCTION__);
+#endif
+}
 
 void* CHECK_WRITE_BUFFER(int core_id, uint64_t lba, uint32_t read_sects)
 {
@@ -777,8 +806,8 @@ int GET_WRITE_BUFFER_TO_FLUSH(int core_id, int* w_buf_index)
 				> FLUSH_TIMEOUT_USEC))){
 
 #ifdef IO_CORE_DEBUG
-			printf("%ld\t[%s] core %d: decide to flush %d write buffer: %d %d %ld\n",
-					get_usec(), __FUNCTION__, core_id, ret_index,
+			printf("[%s] core %d: decide to flush %d write buffer: %d %d %ld\n",
+					__FUNCTION__, core_id, ret_index,
 					vssim_w_buf[ret_index].n_empty_sectors,
 					vssim_w_buf[ret_index].is_full,
 					t_now - vssim_w_buf[ret_index].t_last_flush);

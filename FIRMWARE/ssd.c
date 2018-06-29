@@ -258,6 +258,11 @@ void END_SSD_NVME_WRITE(event_queue_entry* eq_entry)
 
 void END_SSD_NVME_FLUSH(event_queue_entry* eq_entry)
 {
+	if(!eq_entry->flush){
+		free(eq_entry);
+		return;
+	}
+
 	pthread_mutex_lock(&cq_lock);
 
 	/* Remove from the candidate event queue */

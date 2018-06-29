@@ -344,11 +344,18 @@ void *SSD_IO_THREAD_MAIN_LOOP(void *arg)
 		}
 		else if(TEST_FLUSH_FLAG(core_id)){
 
+			pthread_mutex_lock(&vs_core[core_id].flush_lock);
+
 			/* Flush all write buffers */
 			for(i=0; i<N_WRITE_BUF; i++){
 				pthread_mutex_lock(&vssim_w_buf[i].lock);
-				if(vssim_w_buf[i].n_empty_sectors != N_WB_SECTORS)
+				if(vssim_w_buf[i].n_empty_sectors != N_WB_SECTORS){
 					vssim_w_buf[i].is_full = 1;
+				}
+				else{
+					pthread_mutex_unlock(&vssim_w_buf[i].lock);
+					continue;
+				}
 				pthread_mutex_unlock(&vssim_w_buf[i].lock);
 
 				FLUSH_WRITE_BUFFER(core_id, i);
@@ -360,9 +367,10 @@ void *SSD_IO_THREAD_MAIN_LOOP(void *arg)
 			printf("[%s] %ld core: flush all write buffer\n",
 					__FUNCTION__, core_id);
 #endif
+			vs_core[core_id].flush_event = NULL;
+			vs_core[core_id].flush_flag = false;
 
-			/* Reset the flush flag*/
-			RESET_FLUSH_FLAG(core_id);
+			pthread_mutex_unlock(&vs_core[core_id].flush_lock);
 		}
 		else if(GET_WRITE_BUFFER_TO_FLUSH(core_id, &w_buf_index) == SUCCESS){
  
@@ -923,6 +931,12 @@ void END_PER_CORE_FLUSH_REQUEST(int core_id)
 		change the event state to COMPLETE */
 	pthread_mutex_lock(&flush_event->lock);
 
+#ifdef IO_CORE_DEBUG
+	printf("[%s] %d-core completed %lu-th flush event (%d/%d)\n",
+			__FUNCTION__, core_id, flush_event->seq_nb,
+			flush_event->n_completed+1, flush_event->n_child);
+#endif
+
 	flush_event->n_completed++;
 	if(flush_event->n_child == flush_event->n_completed){
 		UPDATE_EVENT_STATE(flush_event, COMPLETED);
@@ -937,6 +951,7 @@ void SET_FLUSH_FLAG(int core_id)
 	vssim_core* cur_vs_core = &vs_core[core_id];
 
 	pthread_mutex_lock(&cur_vs_core->flush_lock);
+
 	cur_vs_core->flush_flag = true;
 	pthread_mutex_unlock(&cur_vs_core->flush_lock);
 }
@@ -947,6 +962,7 @@ void RESET_FLUSH_FLAG(int core_id)
 	vssim_core* cur_vs_core = &vs_core[core_id];
 
 	pthread_mutex_lock(&cur_vs_core->flush_lock);
+	cur_vs_core->flush_event = NULL;
 	cur_vs_core->flush_flag = false;
 	pthread_mutex_unlock(&cur_vs_core->flush_lock);
 }
