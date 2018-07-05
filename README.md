@@ -114,7 +114,7 @@ This section explains the entire process of actually compiling VSSIM and making 
 
     Location: Inside the VSSIM/MONITOR/SSD_MONITOR_PM folder, there is a GUI(Graphic User Interface) written in Qt5 to show VSSIM operation conditions.
 
-        $ cd VSSIM/MONITOR/SSD_MONITOR_PM/
+        $ cd VSSIM/MONITOR/
         $ qmake
         $ make
 
