@@ -159,6 +159,9 @@ void END_SSD_NVME_RW(event_queue_entry* eq_entry)
 		UPDATE_LOG(LOG_READ_PAGE, n_pages);
 		UPDATE_BW(READ, n_pages, t_end - t_start);
 #endif
+#ifdef GET_RW_LAT_INFO
+	fprintf(fp_rw_lat,"R\t%ld\n", t_end - t_start);
+#endif
 	}
 	else if(io_type == WRITE){
 		END_SSD_NVME_WRITE(eq_entry);
@@ -167,6 +170,9 @@ void END_SSD_NVME_RW(event_queue_entry* eq_entry)
 		t_end = get_usec();
 		UPDATE_LOG(LOG_WRITE_PAGE, n_pages);
 		UPDATE_BW(WRITE, n_pages, t_end - t_start);		
+#endif
+#ifdef GET_RW_LAT_INFO
+	fprintf(fp_rw_lat,"W\t%ld\n", t_end - t_start);
 #endif
 	}
 	else if(io_type == FLUSH){

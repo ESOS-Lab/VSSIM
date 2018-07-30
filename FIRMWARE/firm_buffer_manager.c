@@ -907,8 +907,18 @@ void DO_PER_CORE_DISCARD(int core_id)
 
 void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 {
+	int n_total_pages = 0;
 	core_req_entry* cr_entry;
 	core_req_queue* cur_w_queue = &vs_core[core_id].write_queue[w_buf_index];
+
+#ifdef GET_WB_LAT_INFO
+	int64_t wb_lat_start = get_usec();
+	int64_t wb_lat_end;
+#endif
+#ifdef GET_CH_UTIL_INFO
+	int n_ch_util = 0;	
+	double ch_util = 0;	
+#endif
 
 	pthread_mutex_lock(&cur_w_queue->lock);
 
@@ -937,6 +947,8 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 		printf("[%s] core %d: %lu-th event FTL write complete\n",
 			__FUNCTION__, core_id, cr_entry->seq_nb);
 #endif
+		n_total_pages += cr_entry->n_pages;
+
 		cr_entry = cr_entry->next;
 		n_entries--;
 	}	
@@ -987,6 +999,21 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 	/* Init the per core write queue */
 	cur_w_queue->head = NULL;
 	cur_w_queue->tail = NULL;
+
+#ifdef GET_WB_LAT_INFO
+	wb_lat_end = get_usec();
+	fprintf(fp_wb_lat, "%ld\t%d\n", wb_lat_end - wb_lat_start, n_total_pages);
+#endif
+#ifdef GET_CH_UTIL_INFO
+	if(n_total_pages > vs_core[core_id].n_channel)
+		n_ch_util = vs_core[core_id].n_channel;
+	else
+		n_ch_util = n_total_pages;
+
+	ch_util = (double) n_ch_util / vs_core[core_id].n_channel;
+
+	fprintf(fp_ch_util, "W\t%d\t%d\t%d\t%lf\n", core_id, n_ch_util, n_total_pages, ch_util);
+#endif
 
 	/* If needed, perform foreground GC */
 	FGGC_CHECK(core_id);

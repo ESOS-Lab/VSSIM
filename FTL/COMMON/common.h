@@ -100,12 +100,15 @@ int64_t get_usec(void);
 //#define GET_GC_INFO
 //#define GET_CH_UTIL_INFO
 //#define GET_W_EVENT_INFO
+//#define GET_WB_LAT_INFO
+//#define GET_RW_LAT_INFO
 
 /* FLASH Debugging */
 //#define FLASH_DEBUG
 //#define FLASH_DEBUG_LOOP
 
 /* FIRMWARE Debugging */
+//#define THREAD_CORE_BIND
 //#define IO_CORE_DEBUG
 //#define IO_PERF_DEBUG
 

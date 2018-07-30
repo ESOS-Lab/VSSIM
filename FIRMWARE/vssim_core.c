@@ -287,6 +287,16 @@ void *FIRM_IO_BUF_THREAD_MAIN_LOOP(void *arg)
 {
 	enum vssim_io_type io_type;
 
+#ifdef THREAD_CORE_BIND
+	cpu_set_t cpuset;
+	unsigned long mask = 1;
+
+	CPU_SET(mask, &cpuset);
+	if(pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset) < 0){
+		printf("[%s] firm buffer thread cord bind fail!\n", __FUNCTION__);
+	}
+#endif
+
 	event_queue_entry* cur_entry = NULL;
 
 	do{
@@ -330,6 +340,17 @@ void *SSD_IO_THREAD_MAIN_LOOP(void *arg)
 	int i;
 
 	struct timespec ts_timeout;
+
+#ifdef THREAD_CORE_BIND
+	cpu_set_t cpuset;
+	unsigned long mask = 2 << core_id;
+
+	CPU_SET(mask, &cpuset);
+
+	if(pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset) < 0){
+		printf("[%s] firm buffer thread cord bind fail!\n", __FUNCTION__);
+	}
+#endif
 
 	do{
 		if(vs_core[core_id].read_queue.entry_nb != 0){

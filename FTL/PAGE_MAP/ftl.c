@@ -13,6 +13,8 @@ pthread_mutex_t term_lock = PTHREAD_MUTEX_INITIALIZER;
 
 FILE* fp_ch_util;
 FILE* fp_w_event;
+FILE* fp_wb_lat;
+FILE* fp_rw_lat;
 
 /* return value of each init function 
  * 	-1: return FAIL
@@ -61,6 +63,19 @@ void FTL_INIT(void)
 			printf("ERROR[%s] open w_event_info file fail\n", __FUNCTION__);
 		}
 #endif
+#ifdef GET_WB_LAT_INFO
+		fp_wb_lat = fopen("./wb_lat_info.txt", "a");
+		if(fp_wb_lat == NULL){
+			printf("ERROR[%s] open wb_lat_info file fail\n", __FUNCTION__);
+		}
+#endif
+#ifdef GET_RW_LAT_INFO
+		fp_rw_lat = fopen("./rw_lat_info.txt", "a");
+		if(fp_rw_lat == NULL){
+			printf("ERROR[%s] open rw_lat_info file fail\n", __FUNCTION__);
+		}
+#endif
+
 		return;
 
 fail:
@@ -104,6 +119,12 @@ void FTL_TERM(void)
 #endif
 #ifdef GET_W_EVENT_INFO
 	fclose(fp_w_event);
+#endif
+#ifdef GET_WB_LAT_INFO
+	fclose(fp_wb_lat);
+#endif
+#ifdef GET_RW_LAT_INFO
+	fclose(fp_rw_lat);
 #endif
 
 	return;

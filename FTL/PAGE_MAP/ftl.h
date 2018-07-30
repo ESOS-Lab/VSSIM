@@ -12,6 +12,8 @@
 
 extern FILE* fp_w_event;
 extern FILE* fp_ch_util;
+extern FILE* fp_wb_lat;
+extern FILE* fp_rw_lat;
 
 void FTL_INIT(void);
 void FTL_TERM(void);
