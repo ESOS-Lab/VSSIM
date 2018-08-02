@@ -17,6 +17,16 @@ extern pthread_cond_t* ssd_io_ready;
 
 typedef void CallbackFunc(void *opaque, int ret);
 
+
+typedef struct core_req_queue
+{
+	int entry_nb;
+	struct core_req_entry* head;
+	struct core_req_entry* tail;
+	pthread_mutex_t lock;	
+}core_req_queue;
+
+
 typedef struct core_req_entry
 {
 	uint64_t seq_nb;
@@ -33,16 +43,16 @@ typedef struct core_req_entry
 
 	int64_t t_start; 
 
+	/* pointer for per-core I/O list */
 	struct core_req_entry* next;
-}core_req_entry;
 
-typedef struct core_req_queue
-{
-	int entry_nb;
-	core_req_entry* head;
-	core_req_entry* tail;
-	pthread_mutex_t lock;	
-}core_req_queue;
+	/* pointer for merged I/O list */
+	struct core_req_entry* merged_next;
+
+	/* list for merged entries */
+	core_req_queue merged_entries;
+
+}core_req_entry;
 
 typedef struct vssim_core
 {
@@ -107,6 +117,7 @@ void *BACKGROUND_GC_THREAD_MAIN_LOOP(void *arg);
 
 /* IO Buffer Processing */
 int64_t GET_LOCAL_LPN(int64_t lpn, int* core_id);
+void MERGE_CORE_REQ_ENTRY(core_req_entry* dst_entry, core_req_entry* src_entry);
 void INSERT_NEW_PER_CORE_REQUEST(int core_id, event_queue_entry* eq_entry, 
 			uint64_t sector_nb, uint32_t length, int w_buf_index);
 void INSERT_RW_TO_PER_CORE_EVENT_QUEUE(event_queue_entry* eq_entry, 

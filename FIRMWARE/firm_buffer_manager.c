@@ -841,9 +841,11 @@ int GET_WRITE_BUFFER_TO_FLUSH(int core_id, int* w_buf_index)
 
 void DO_PER_CORE_READ(int core_id)
 {
+	int i, n_merged_entries;
 	int ret;
 
 	core_req_entry* cr_entry;
+	core_req_entry* merged_entry;
 	core_req_queue* r_queue = &vs_core[core_id].read_queue;
 
 	pthread_mutex_lock(&r_queue->lock);
@@ -874,7 +876,20 @@ void DO_PER_CORE_READ(int core_id)
 		cr_entry->is_trimmed = true;
 	}
 
-	/* post processing */
+	/* Post processing for the merged entries*/
+	n_merged_entries = cr_entry->merged_entries.entry_nb;
+
+	for(i=0; i<n_merged_entries; i++){
+		merged_entry = cr_entry->merged_entries.head;
+		cr_entry->merged_entries.head = merged_entry->merged_next;
+
+		/* Recover original i/o length */
+		cr_entry->length -= merged_entry->length;
+
+		END_PER_CORE_READ_REQUEST(merged_entry);
+	}
+
+	/* Post processing for the current entry */
 	END_PER_CORE_READ_REQUEST(cr_entry);
 }
 
@@ -907,8 +922,10 @@ void DO_PER_CORE_DISCARD(int core_id)
 
 void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 {
+	int i, n_merged_entries = 0;
 	int n_total_pages = 0;
 	core_req_entry* cr_entry;
+	core_req_entry* merged_entry;
 	core_req_queue* cur_w_queue = &vs_core[core_id].write_queue[w_buf_index];
 
 #ifdef GET_WB_LAT_INFO
@@ -993,6 +1010,20 @@ void FLUSH_WRITE_BUFFER(int core_id, int w_buf_index)
 		first_entry = false;
 #endif
 
+		/* Post processing for the merged entries*/
+		n_merged_entries = cr_entry->merged_entries.entry_nb;
+
+		for(i=0; i<n_merged_entries; i++){
+			merged_entry = cr_entry->merged_entries.head;
+			cr_entry->merged_entries.head = merged_entry->merged_next;
+
+			/* Recover original i/o length */
+			cr_entry->length -= merged_entry->length;
+
+			END_PER_CORE_WRITE_REQUEST(merged_entry, w_buf_index);
+		}
+
+		/* Post processing for the current entry */
 		END_PER_CORE_WRITE_REQUEST(cr_entry, w_buf_index);
 	}
 

@@ -487,6 +487,26 @@ int64_t GET_LOCAL_LPN(int64_t lpn, int* core_id)
 	return local_lpn;
 }
 
+
+void MERGE_CORE_REQ_ENTRY(core_req_entry* dst_entry, core_req_entry* src_entry)
+{
+	/* Insert src entry to the merged I/O list */
+	if(dst_entry->merged_entries.entry_nb == 0){
+		dst_entry->merged_entries.head = src_entry;
+		dst_entry->merged_entries.tail = src_entry;
+	}
+	else{
+		dst_entry->merged_entries.tail->merged_next = src_entry;
+		dst_entry->merged_entries.tail = src_entry;
+	}
+
+	/* Increase the I/O length of the dst entry */
+	dst_entry->length += src_entry->length;
+	
+	/* Increase merged I/O list entry number */
+	dst_entry->merged_entries.entry_nb++;
+}
+
 void INSERT_NEW_PER_CORE_REQUEST(int core_id, event_queue_entry* eq_entry, 
 			uint64_t sector_nb, uint32_t length, int w_buf_index)
 {
@@ -523,6 +543,22 @@ void INSERT_NEW_PER_CORE_REQUEST(int core_id, event_queue_entry* eq_entry,
 		cur_cr_queue->head = new_cr_entry;
 		cur_cr_queue->tail = new_cr_entry;
 	}
+	else if(io_type == READ || io_type == WRITE){
+
+		/* Check whether this entry can be merged with the last entry */
+		if(cur_cr_queue->tail->sector_nb + cur_cr_queue->tail->length
+				== new_cr_entry->sector_nb
+				&& cur_cr_queue->tail->io_type == new_cr_entry->io_type){
+
+			MERGE_CORE_REQ_ENTRY(cur_cr_queue->tail, new_cr_entry);
+
+			goto exit;
+		}
+		else{
+			cur_cr_queue->tail->next = new_cr_entry;
+			cur_cr_queue->tail = new_cr_entry;
+		}
+	}
 	else{
 		cur_cr_queue->tail->next = new_cr_entry;
 		cur_cr_queue->tail = new_cr_entry;
@@ -530,6 +566,7 @@ void INSERT_NEW_PER_CORE_REQUEST(int core_id, event_queue_entry* eq_entry,
 
 	cur_cr_queue->entry_nb++;
 
+exit:
 	/* Release lock for per-core request queue */
 	pthread_mutex_unlock(&cur_cr_queue->lock);
 }
@@ -770,6 +807,13 @@ core_req_entry* CREATE_NEW_CORE_EVENT(event_queue_entry* eq_entry,
 	new_cr_entry->t_start	= eq_entry->t_start;
 	new_cr_entry->next	= NULL;
 
+	/* Initialize the list for merged entries*/
+	new_cr_entry->merged_next = NULL;
+	new_cr_entry->merged_entries.entry_nb = 0;
+	new_cr_entry->merged_entries.head = NULL;
+	new_cr_entry->merged_entries.tail = NULL;
+	pthread_mutex_init(&new_cr_entry->merged_entries.lock, NULL);
+
 	return new_cr_entry;
 }
 
@@ -819,9 +863,9 @@ void END_PER_CORE_READ_REQUEST(core_req_entry* cr_entry)
 void END_PER_CORE_WRITE_REQUEST(core_req_entry* cr_entry, int w_buf_index)
 {
 	if(cr_entry->flush == true){
+
 		/* Update parent event entry */
 		event_queue_entry* parent_event = cr_entry->parent;
-
 
 		/* If all child completed Flash IO,
 			change the event state to COMPLETE */
