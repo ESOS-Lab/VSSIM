@@ -1,7 +1,7 @@
 /*
  * File: main.cpp
  * Date: 2016. 8. 8.
- * Author: Yongseok Jin (mnm102211@gmail.com)
+ * Author: Yongseok Jin
  * Copyright(c)2016
  * Hanyang University, Seoul, Korea
  * Embedded Software Systems Laboratory, All right reserved
