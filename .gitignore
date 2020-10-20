@@ -1,0 +1,48 @@
+
+*.sw?
+*.o
+*.d
+*.iso
+*.ISO
+*.a
+*.img
+*.bin
+
+tags
+QEMU/x86_64-softmmu/*
+
+#To be built by qmake
+MONITOR/SSD_MONITOR_PM/moc_monitorform.cpp
+MONITOR/SSD_MONITOR_PM/Makefile
+MONITOR/SSD_MONITOR_PM/ssd_monitor_p
+MONITOR/SSD_MONITOR_PM/ui_monitorform.h
+
+#To be built by QEMU configure
+QEMU/Makefile.target
+QEMU/config-host.h
+QEMU/config-host.mak
+QEMU/libhw32/Makefile
+QEMU/libhw64/Makefile
+
+#To be built by QEMU make
+QEMU/qemu-img
+QEMU/qemu-img-cmds.h
+QEMU/qemu-io
+QEMU/qemu-nbd
+
+#symbolic links under QEMU/hw
+QEMU/hw/common.h
+QEMU/hw/firm_buffer_manager.?
+QEMU/hw/ftl.?
+QEMU/hw/ftl_cache.?
+QEMU/hw/ftl_gc_manager.?
+QEMU/hw/ftl_inverse_mapping_manager.?
+QEMU/hw/ftl_mapping_manager.?
+QEMU/hw/ftl_perf_manager.?
+QEMU/hw/ftl_type.h
+QEMU/hw/ssd.?
+QEMU/hw/ssd_io_manager.?
+QEMU/hw/ssd_log_manager.?
+QEMU/hw/ssd_trim_manager.?
+QEMU/hw/ssd_util.h
+QEMU/hw/vssim_config_manager.?
